@@ -1,8 +1,3 @@
-"""
-database.py — SQLite backend for the honeypot.
-Replaces flat JSONL files with indexed, queryable storage.
-"""
-
 import sqlite3
 import json
 import threading
