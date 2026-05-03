@@ -24,12 +24,23 @@ for /f "tokens=*" %%v in ('%PY% --version 2^>^&1') do echo [OK] %%v  (using '%PY
 REM ── Install dependencies ─────────────────────────────────────────────────────
 echo.
 echo [1/4] Installing packages...
-%PY% -m pip install paramiko requests aiohttp --quiet
+echo        Removing conflicting jwt package if present...
+%PY% -m pip uninstall jwt -y >nul 2>&1
+
+%PY% -m pip install paramiko requests aiohttp bcrypt PyJWT reportlab --quiet
 if %errorlevel% neq 0 (
     echo [ERROR] pip failed. Try running as Administrator.
-    pause & exit /b 1
+    pause ^& exit /b 1
 )
-echo [OK] Packages ready.
+
+REM Verify PyJWT is importable
+%PY% -c "import jwt" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [FIX] Reinstalling PyJWT cleanly...
+    %PY% -m pip uninstall jwt PyJWT -y --quiet 2>nul
+    %PY% -m pip install PyJWT --quiet
+)
+echo [OK] All packages ready.
 
 REM ── Seed database ────────────────────────────────────────────────────────────
 echo.
@@ -49,5 +60,11 @@ echo       (In a new terminal: %PY% honeypot.py  to start SSH honeypot on port 2
 echo.
 echo       Press Ctrl+C to stop.
 echo.
+echo.
+echo  IMPORTANT: Open http://localhost:8080 in your browser (NOT dashboard.html as a file)
+echo  Login: admin / honeywatch
+echo.
+timeout /t 3 /nobreak ^>nul
+start "" "http://localhost:8080"
 %PY% ws_server.py
 pause
